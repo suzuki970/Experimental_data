@@ -8,3 +8,5 @@ DESCRIPTION
 ##-----------------------------
 
 analyses contains analyses files to generate figures
+
+sampleMovies contains actuall moveis used in Experiment
