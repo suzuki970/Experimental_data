@@ -37,7 +37,7 @@ xlim([-0.2 1.5])
 ylabel('Pupil changes [%]')
 xlabel('Time [s]')
 set(gca,'FontName','Times New Roman','FontSize',18)
-
+title('figure2(a)')
 legend([h(1).mainLine,h(2).mainLine],'R','NR')
 
 %% figure2(b)
@@ -67,6 +67,7 @@ xlim([-0.3 endTime])
 ylabel('Pupil changes [%]')
 xlabel('time [s]')
 set(gca,'FontName','Times New Roman','FontSize',18)
+title('figure2(b)')
 
 legend([h(3).mainLine,h(2).mainLine,h(1).mainLine],'R -> R','NR -> R','NR -> NR')
 
@@ -97,6 +98,7 @@ hbm(3).EdgeColor = 'k';
 
 xlim([0.5 1.5])
 set(gca,'FontName','Times New Roman','FontSize',18)
+title('figure2(c)')
 box on
 ylabel('Pupil changes [%]')
 legend()
@@ -168,6 +170,7 @@ str = {'P_{NN}','P_{NR}'};
 set(gca,'xticklabel',str)
 ylabel('Pupil changes [%]')
 xlabel('Confidence')
+title('figure2(d)')
 xlim([0.5 2.5])
 set(gca,'FontName','Times New Roman','FontSize',18)
 legend('High confidence','Low Confidence')

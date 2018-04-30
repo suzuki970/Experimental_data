@@ -87,4 +87,5 @@ ylabel('Pupil size [%]')
 xlabel('Time [s]')
 set(gca,'FontName','Times New Roman','FontSize',18)
 legend([h(1).mainLine,h(2).mainLine],'PNN','PNR','PRR')
+title('figure4(a)')
 

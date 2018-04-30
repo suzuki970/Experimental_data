@@ -53,8 +53,9 @@ ylabel('Pupil size [%]')
 xlabel('Time [s]')
 set(gca,'FontName','Times New Roman','FontSize',18)
 legend([h(2).mainLine,h(1).mainLine],'R','NR')
+title('figure3(a)')
 
-%% figure 2(b)
+%% figure 3(b)
 for iSub = 1:size(plotDataAll,1)
     
     y = plotDataAll{iSub}.PLRup;
@@ -92,8 +93,9 @@ ylabel('Pupil size [%]')
 xlabel('Time [s]')
 set(gca,'FontName','Times New Roman','FontSize',18)
 legend([h(2).mainLine,h(1).mainLine],'R','NR')
+title('figure3(b)')
 
-%% figure2(c)
+%% figure3(c)
 
 for iSub = 1:size(plotDataAll,1)
     
@@ -188,6 +190,7 @@ ylabel('Pupil size [%]')
 xlabel('Time [s]')
 set(gca,'FontName','Times New Roman','FontSize',18)
 legend([h(1).mainLine,h(2).mainLine],'inverted','upright')
+title('figure3(c)')
 
 %% Figure3(d)
 errorData = std(barDataAll(:,1:4),[],1) ./ sqrt(size(barDataAll,1));
@@ -224,6 +227,7 @@ xlabel('Condition')
 xlim([0.5 2.5])
 set(gca,'FontName','Times New Roman','FontSize',18)
 legend('NR','R')
+title('figure3(d)')
 
 %% Figure3(e)
 errorData = std(barDataAll(:,5:6),[],1) ./ sqrt(size(barDataAll,1));
@@ -259,3 +263,4 @@ xlabel('Condition')
 xlim([0.5 1.5])
 set(gca,'FontName','Times New Roman','FontSize',18)
 legend('NR','R')
+title('figure3(e)')
