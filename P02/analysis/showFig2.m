@@ -9,8 +9,13 @@ startTime = -0.5833;
 endTime = 1.5;
 
 %% figure2(a)
+<<<<<<< HEAD
 for iSub = 1:size(plotDataAllTrialEx,1)
     short = plotDataAllTrialEx{iSub,1};
+=======
+for iSub = 1:size(plotDataAll,1)
+    short = plotDataAll{iSub,1};
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
     plotData{iSub,1} = short.R;
     plotData{iSub,2} = short.NR;
     
@@ -37,6 +42,7 @@ xlim([-0.2 1.5])
 ylabel('Pupil changes [%]')
 xlabel('Time [s]')
 set(gca,'FontName','Times New Roman','FontSize',18)
+<<<<<<< HEAD
 
 legend([h(1).mainLine,h(2).mainLine],'R','NR')
 
@@ -44,6 +50,15 @@ legend([h(1).mainLine,h(2).mainLine],'R','NR')
 for iSub = 1:size(plotDataAllTrialEx,1)
     
     short = plotDataAllTrialEx{iSub,1};
+=======
+title('figure2(a)')
+legend([h(1).mainLine,h(2).mainLine],'R','NR')
+
+%% figure2(b)
+for iSub = 1:size(plotDataAll,1)
+    
+    short = plotDataAll{iSub,1};
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
     
     plotData{iSub,2} = short.NRR;
     plotData{iSub,1} = short.NRNR;
@@ -67,6 +82,10 @@ xlim([-0.3 endTime])
 ylabel('Pupil changes [%]')
 xlabel('time [s]')
 set(gca,'FontName','Times New Roman','FontSize',18)
+<<<<<<< HEAD
+=======
+title('figure2(b)')
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
 
 legend([h(3).mainLine,h(2).mainLine,h(1).mainLine],'R -> R','NR -> R','NR -> NR')
 
@@ -97,15 +116,26 @@ hbm(3).EdgeColor = 'k';
 
 xlim([0.5 1.5])
 set(gca,'FontName','Times New Roman','FontSize',18)
+<<<<<<< HEAD
+=======
+title('figure2(c)')
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
 box on
 ylabel('Pupil changes [%]')
 legend()
 legend('NR -> NR','NR -> R','R -> R')
 
 %% figure2(d)
+<<<<<<< HEAD
 for iSub = 1:size(plotDataAllTrialEx,1)
     
     short = plotDataAllTrialEx{iSub,1};
+=======
+
+for iSub = 1:size(plotDataAll,1)
+    
+    short = plotDataAll{iSub,1};
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
     
     pData{iSub,1} = short.NR_NR6;
     pData{iSub,2} = short.NR_NR4;
@@ -167,6 +197,10 @@ str = {'P_{NN}','P_{NR}'};
 set(gca,'xticklabel',str)
 ylabel('Pupil changes [%]')
 xlabel('Confidence')
+<<<<<<< HEAD
+=======
+title('figure2(d)')
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
 xlim([0.5 2.5])
 set(gca,'FontName','Times New Roman','FontSize',18)
 legend('High confidence','Low Confidence')

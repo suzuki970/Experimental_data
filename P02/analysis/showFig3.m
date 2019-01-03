@@ -9,12 +9,17 @@ colorData();
 startTime = -1;
 endTime =3;
 
+<<<<<<< HEAD
 y = plotDataAllTrialEx{1}.PLRinv;
+=======
+y = plotDataAll{1}.PLRinv;
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
 x = [startTime:(endTime-startTime)/(size(y,2)-1):endTime];
 timeRange = [knnsearch(x',0) knnsearch(x',3)];
 compFlag = 1;
 
 %% figure 3(a)
+<<<<<<< HEAD
 for iSub = 1:size(plotDataAllTrialEx,1)
     
     y = plotDataAllTrialEx{iSub}.PLRinv;
@@ -22,6 +27,15 @@ for iSub = 1:size(plotDataAllTrialEx,1)
     plrDataInv{iSub,1} = y(ind,:);
     
     ind = find(plotDataAllTrialEx{iSub}.taskResInv == 6);
+=======
+for iSub = 1:size(plotDataAll,1)
+    
+    y = plotDataAll{iSub}.PLRinv;
+    ind = find(plotDataAll{iSub}.taskResInv == 4);
+    plrDataInv{iSub,1} = y(ind,:);
+    
+    ind = find(plotDataAll{iSub}.taskResInv == 6);
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
     plrDataInv{iSub,2} = y(ind,:);
     
     numTrial(iSub,1) =  size(plrDataInv{iSub,1},1);
@@ -53,6 +67,7 @@ ylabel('Pupil size [%]')
 xlabel('Time [s]')
 set(gca,'FontName','Times New Roman','FontSize',18)
 legend([h(2).mainLine,h(1).mainLine],'R','NR')
+<<<<<<< HEAD
 
 %% figure 2(b)
 for iSub = 1:size(plotDataAllTrialEx,1)
@@ -62,6 +77,18 @@ for iSub = 1:size(plotDataAllTrialEx,1)
     plrDataUp{iSub,1} = y(ind,:);
     
     ind = find(plotDataAllTrialEx{iSub}.taskResUp == 6);
+=======
+title('figure3(a)')
+
+%% figure 3(b)
+for iSub = 1:size(plotDataAll,1)
+    
+    y = plotDataAll{iSub}.PLRup;
+    ind = find(plotDataAll{iSub}.taskResUp == 4);
+    plrDataUp{iSub,1} = y(ind,:);
+    
+    ind = find(plotDataAll{iSub}.taskResUp == 6);
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
     plrDataUp{iSub,2} = y(ind,:);
     
     numTrial(iSub,3) =  size(plrDataUp{iSub,1},1);
@@ -92,6 +119,7 @@ ylabel('Pupil size [%]')
 xlabel('Time [s]')
 set(gca,'FontName','Times New Roman','FontSize',18)
 legend([h(2).mainLine,h(1).mainLine],'R','NR')
+<<<<<<< HEAD
 
 %% figure2(c)
 
@@ -99,12 +127,27 @@ for iSub = 1:size(plotDataAllTrialEx,1)
     
     ind_inv = find(plotDataAllTrialEx{iSub}.taskResInv == 4);
     ind_up = find(plotDataAllTrialEx{iSub}.taskResUp == 4);
+=======
+title('figure3(b)')
+
+%% figure3(c)
+
+for iSub = 1:size(plotDataAll,1)
+    
+    ind_inv = find(plotDataAll{iSub}.taskResInv == 4);
+    ind_up = find(plotDataAll{iSub}.taskResUp == 4);
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
     
     plrNR_R_inv = [];
     plrNR_R_up = [];
     
+<<<<<<< HEAD
     condInv = plotDataAllTrialEx{iSub}.conditionInv;
     condUp = plotDataAllTrialEx{iSub}.conditionUp;
+=======
+    condInv = plotDataAll{iSub}.conditionInv;
+    condUp = plotDataAll{iSub}.conditionUp;
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
     
     for i = 1:size( ind_up,1 )
         
@@ -112,11 +155,19 @@ for iSub = 1:size(plotDataAllTrialEx,1)
         
         if  ~isempty( find( condInv(ind_inv) ==  a))
             ind = find( condInv == a);
+<<<<<<< HEAD
             y = plotDataAllTrialEx{iSub}.PLRinv;
             plrNR_R_inv = [plrNR_R_inv;y(ind,:)];
             
             ind = find( condUp == a);
             y = plotDataAllTrialEx{iSub}.PLRup;
+=======
+            y = plotDataAll{iSub}.PLRinv;
+            plrNR_R_inv = [plrNR_R_inv;y(ind,:)];
+            
+            ind = find( condUp == a);
+            y = plotDataAll{iSub}.PLRup;
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
             plrNR_R_up = [plrNR_R_up;y(ind,:)];
         end
         
@@ -131,18 +182,32 @@ for iSub = 1:size(plotDataAllTrialEx,1)
     
     wei(iSub,:) = plrDataNR{iSub,1} - plrDataNR{iSub,2};
     
+<<<<<<< HEAD
     ind_inv = find(plotDataAllTrialEx{iSub}.taskResInv == 4);
     ind_up = find(plotDataAllTrialEx{iSub}.taskResUp == 6);
     
     y = plotDataAllTrialEx{iSub}.PLRup;
     y = y + repmat(wei(iSub,:) ,size(y,1),1);
     plotDataAllTrialEx{iSub}.PLRup = y;
+=======
+    ind_inv = find(plotDataAll{iSub}.taskResInv == 4);
+    ind_up = find(plotDataAll{iSub}.taskResUp == 6);
+    
+    y = plotDataAll{iSub}.PLRup;
+    y = y + repmat(wei(iSub,:) ,size(y,1),1);
+    plotDataAll{iSub}.PLRup = y;
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
     
     plrNR_R_inv = [];
     plrNR_R_up = [];
     
+<<<<<<< HEAD
     condInv = plotDataAllTrialEx{iSub}.conditionInv;
     condUp = plotDataAllTrialEx{iSub}.conditionUp;
+=======
+    condInv = plotDataAll{iSub}.conditionInv;
+    condUp = plotDataAll{iSub}.conditionUp;
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
     
     for i = 1:size( ind_up,1 )
         
@@ -150,11 +215,19 @@ for iSub = 1:size(plotDataAllTrialEx,1)
         
         if  ~isempty( find( condInv(ind_inv) ==  a))
             ind = find( condInv == a);
+<<<<<<< HEAD
             y = plotDataAllTrialEx{iSub}.PLRinv;
             plrNR_R_inv = [plrNR_R_inv;y(ind,:)];
             
             ind = find( condUp == a);
             y = plotDataAllTrialEx{iSub}.PLRup;
+=======
+            y = plotDataAll{iSub}.PLRinv;
+            plrNR_R_inv = [plrNR_R_inv;y(ind,:)];
+            
+            ind = find( condUp == a);
+            y = plotDataAll{iSub}.PLRup;
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
             plrNR_R_up = [plrNR_R_up;y(ind,:)];
         end
         
@@ -188,6 +261,10 @@ ylabel('Pupil size [%]')
 xlabel('Time [s]')
 set(gca,'FontName','Times New Roman','FontSize',18)
 legend([h(1).mainLine,h(2).mainLine],'inverted','upright')
+<<<<<<< HEAD
+=======
+title('figure3(c)')
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
 
 %% Figure3(d)
 errorData = std(barDataAll(:,1:4),[],1) ./ sqrt(size(barDataAll,1));
@@ -224,6 +301,10 @@ xlabel('Condition')
 xlim([0.5 2.5])
 set(gca,'FontName','Times New Roman','FontSize',18)
 legend('NR','R')
+<<<<<<< HEAD
+=======
+title('figure3(d)')
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
 
 %% Figure3(e)
 errorData = std(barDataAll(:,5:6),[],1) ./ sqrt(size(barDataAll,1));
@@ -258,4 +339,9 @@ ylabel('Pupil changes [%]')
 xlabel('Condition')
 xlim([0.5 1.5])
 set(gca,'FontName','Times New Roman','FontSize',18)
+<<<<<<< HEAD
 legend('NR','R')
+=======
+legend('NR','R')
+title('figure3(e)')
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6

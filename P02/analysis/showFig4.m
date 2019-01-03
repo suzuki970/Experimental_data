@@ -9,11 +9,16 @@ colorData();
 startTime = -1;
 endTime =3;
 
+<<<<<<< HEAD
 y = plotDataAllTrialEx{1}.PLRinv;
+=======
+y = plotDataAll{1}.PLRinv;
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
 x = [startTime:(endTime-startTime)/(size(y,2)-1):endTime];
 timeRange = [knnsearch(x',0) knnsearch(x',3)];
 compFlag = 1;
 
+<<<<<<< HEAD
 for iSub = 1:size(plotDataAllTrialEx,1)
     
     % trial number
@@ -25,12 +30,29 @@ for iSub = 1:size(plotDataAllTrialEx,1)
     
     condInv = plotDataAllTrialEx{iSub}.conditionInv;
     condUp = plotDataAllTrialEx{iSub}.conditionUp;
+=======
+for iSub = 1:size(plotDataAll,1)
+    
+    % trial number
+    ind_inv = find(plotDataAll{iSub}.taskResInv == 4);
+    ind_up = find(plotDataAll{iSub}.taskResInv == 6);
+    
+    ind_up4 = find(plotDataAll{iSub}.taskResUp == 4);
+    ind_up6 = find(plotDataAll{iSub}.taskResUp == 6);
+    
+    condInv = plotDataAll{iSub}.conditionInv;
+    condUp = plotDataAll{iSub}.conditionUp;
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
     
     plrPNN = [];
     plrPNR = [];
     plrPRR = [];
     
+<<<<<<< HEAD
     y = plotDataAllTrialEx{iSub}.PLRinv;
+=======
+    y = plotDataAll{iSub}.PLRinv;
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
     
     for i = 1:size( ind_up4,1 )
         
@@ -87,4 +109,8 @@ ylabel('Pupil size [%]')
 xlabel('Time [s]')
 set(gca,'FontName','Times New Roman','FontSize',18)
 legend([h(1).mainLine,h(2).mainLine],'PNN','PNR','PRR')
+<<<<<<< HEAD
+=======
+title('figure4(a)')
+>>>>>>> 739ca2b8e0553af1d4f0580dfff64a420ff4d4e6
 
