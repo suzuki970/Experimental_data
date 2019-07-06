@@ -1,0 +1,436 @@
+# -------------setting path and initializing-------------
+currentLoc = dirname( sys.frame(1)$ofile )
+root = strsplit(currentLoc , "Rscript")
+root = paste(root[[1]][[1]], "/Rscript/",sep="")
+path_toolbox = paste(root, "toolbox/",sep="")
+source(paste(path_toolbox, "initialization.R", sep = ""))
+# ----------------------------------------------------
+
+saveLoc = "/Users/yuta/Desktop/"
+
+width_fig=7
+height_fig=4.8
+countFigNum = 1
+
+# ##----- show color spectrum data --------
+currentLoc = strsplit(currentLoc , "SI")
+color_data <- read.csv(paste(currentLoc,"/colorGlare2.csv", sep = ""))
+color_data <- color_data[,-2:-4]
+
+color_data1 <- as.matrix(color_data[25:dim(color_data)[1],seq(3,22,by=3)]) 
+color_data1 <- t(matrix(color_data1,nrow=1))
+color_data2 <- as.matrix(color_data[25:dim(color_data)[1],seq(4,23,by=3)])
+color_data2 <- t(matrix(color_data2,nrow=1))
+
+gColor <- c("Black","Green","Cyan","Yellow","Blue","Magenta","Red")
+
+dat <- data.frame(
+  loc = rep(1:2,times=c(length(color_data1),length(color_data1))),
+  data_y = as.numeric(rbind(color_data1,color_data2)),
+  data_x = rep(380:780,14),
+  Color = rep(rep(1:7,times=rep(401,7)),2)
+)
+
+waveLen = length(dat[dat$Color == 'Black',]$data_x)
+dat_area = aggregate( data_y ~ Color, data = dat, FUN = "sum")
+# dat_area$data_y = dat_area$data_y / waveLen
+
+dat$Color = gColor[dat$Color]
+dat$Color <- factor(dat$Color, levels = c("Black","Blue","Cyan","Green","Yellow","Red","Magenta"))
+
+dat_mean = aggregate( data_y ~ data_x*Color, data = dat, FUN = "mean")
+dat_mean$ymin = rep(0,dim(dat_mean)[1])
+dat_mean$ymax = dat_mean$data_y
+
+config <- list(lim_x = c(380, 780),
+               lim_y = c(0, 0.0045),
+               stride = 0.001,
+               alpha_val = 0.2,
+               label_x = "Wavelength [nm]",
+               label_y = expression(paste("Radiance [W*sr"^{"-1"},"*m"^{"-2"} ,"]" )),
+               grCol = c("Black","Blue","Cyan","Green","Yellow","Red","Magenta"))
+
+# p <- disp(dat_mean,config,1,c("Color","Color"))
+p <- ggplot(dat_mean,aes(x = data_x, y = data_y, colour = Color, group = Color))+
+  geom_ribbon(aes(ymin = ymin, ymax = ymax, fill = Color), alpha = config$alpha, size = 0.05) +
+  scale_fill_manual(values = config$grCol)+
+  geom_line()
+
+p <- p +
+  scale_color_manual(values = config$grCol)+
+  geom_vline(xintercept=0, colour='black', linetype='longdash', size = 0.1) +
+  ggtitle(config$title) +
+  xlab(config$label_x) + ylab(config$label_y) +
+  coord_cartesian(xlim = config$lim_x, ylim=config$lim_y) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  theme(
+    legend.position = 'none'
+  )
+
+p <- setFigureStyle(p)
+print(p)
+
+eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
+countFigNum = countFigNum+1
+
+ggsave(file = paste(saveLoc,"/color_distribution.pdf", sep = ""),
+       plot = p, dpi = 300,
+       width = width_fig, height = height_fig,
+       family="Times")
+
+dat_mean = aggregate( data_y ~ Color, data = dat, FUN = "sum")
+print(sd(dat))
+print(mean(dat))
+
+# Calcration of equality --------------------------------------------------
+# cone_data <- read.csv(paste(currentLoc,"/linss2_10e_1.csv", sep = ""))
+# cone_data <- cone_data[cone_data$X390 < 600,]
+# 
+# dat_mean = dat_mean[dat_mean$data_x > 390,]
+# dat_mean = dat_mean[dat_mean$data_x < 600,]
+# # dat_mean$X = cone_data$X3.769647E.03
+# # dat_mean$Y = cone_data$X4.146161E.04
+# # dat_mean$Z = cone_data$X1.847260E.02
+# dat_mean$X = cone_data$X4.15003E.04
+# dat_mean$Y = cone_data$X3.68349E.04
+# dat_mean$Z = cone_data$X9.54729E.03
+# 
+# dat = mapply(function(x,y){return (x*y)},dat_mean$data_y,dat_mean$X) + 
+#   mapply(function(x,y){return (x*y)},dat_mean$data_y,dat_mean$Y) + 
+#   mapply(function(x,y){return (x*y)},dat_mean$data_y,dat_mean$Z)
+# dat_mean$data_y = dat
+# 
+# config$lim_y = c(0, 0.01)
+# p <- disp(dat_mean,config,1,c("Color","Color"))
+# p <- p + theme(
+#   legend.position = 'none'
+# )
+# p <- setFigureStyle(p)
+# print(p)
+
+# color_data1 <- as.matrix(color_data[15:15,seq(3,22,by=3)])
+# color_data1 <- t(matrix(color_data1,nrow=1))
+# color_data2 <- as.matrix(color_data[15:15,seq(4,23,by=3)])
+# color_data2 <- t(matrix(color_data2,nrow=1))
+# dat <- data.frame(
+#   loc = rep(1:2,times=c(length(color_data1),length(color_data1))),
+#   data_y = as.numeric(rbind(color_data1,color_data2)),
+#   # data_x = rep(380:780,14),
+#   Color = rep(1:7,2)
+# )
+# 
+# dat_mean = aggregate( data_y ~ Color, data = dat, FUN = "mean")
+# print(sd(dat_mean$data_y))
+# print(mean(dat_mean$data_y))
+
+# lab value ---------------------------------------------------------------
+# dependent variable : Color, Saturation, Cone activity...
+# independent variable : PLR
+
+saturation = c(41.1255,307.6227,88.6717,205.7432,119.5136,196.1691,217.1711)
+L = c(371.0542,381.4153,377.1896,373.7943,372.5292,364.2787,374.6682)
+
+saturation = saturation / (sqrt(saturation^2 + L^2))
+
+load(paste(currentLoc,"/dataset_e1.rda", sep = ""))
+data_e1 <- subset(data_e1, sub == 2 | sub == 3 | sub == 4 | sub == 5 | sub == 9 | 
+                    sub == 10 | sub == 17 | sub == 12 | sub == 16 | sub == 21 | 
+                    sub == 22 | sub == 19)
+subN =c("","s01","s02","s03","s04","","","","s05","s06","","s08",
+        "","","","s09","s07","","","s12","s11","s10","s12")
+data_e1$sub = subN[data_e1$sub]
+# load(paste(currentLoc,"/dataset_e2.rda", sep = ""))
+# data_e2 <- subset(data_e2, sub != 7 & sub != 13 & sub != 9)
+
+# data_e1 = data_e2
+# data_e1$data_y = data_e1$data_afy
+data_e1 = aggregate( data_y ~ sub*Color*Pattern, data = data_e1, FUN = "mean")
+# data_e1 = data_e1[data_e1$Pattern == 'Glare',]
+# data_e1 <- subset(data_e1, sub != 7 & sub != 13 )
+# data_e1 = subset(data_e1, sub == 2 | sub == 3 | sub == 4 | sub == 5 | sub == 9 | sub == 10 | sub == 17)
+
+numOfSub = length(unique(data_e1$sub))
+data_e1 = data_e1[order(data_e1$Pattern,data_e1$sub),]
+
+data_e1$saturation = saturation
+
+# # data_e1 = data_e1[data_e1$Pattern == 'Glare',]
+# fit1 = lm(data_y ~ saturation+Pattern, data=data_e1)
+# Anova(fit1, type='III')
+# fit1 <- aov(data_y ~ Color*Pattern+saturation, data=data_e1)
+# print(summary(fit1))
+# # Anova(fit1, type='III')
+# postHocs = glht(fit1, linfct = mcp(Color = "Tukey"))
+# print(summary(postHocs))
+
+config$label_x = 'Averaged saturation calculated from L*a*b* value'
+config$label_y = 'Pupil changes [mm]'
+
+# p <- ggplot(data_e1,aes(y = data_y, x = saturation)) +
+#   # geom_boxplot(aes(colour = Color)) +
+# geom_point(aes(colour = Color,shape = Pattern),size = 3) +
+#   scale_color_manual(values = config$gr) +
+#   geom_smooth(method = "lm", se=F) + 
+#   xlab(config$label_x) + ylab(config$label_y)
+# 
+# p <- setFigureStyle(p)
+# # print(p)
+# # ggsave(file = paste(saveLoc,"fig.pdf", sep = ""),
+# #               plot = p, dpi = 300,
+# #               width = width_fig, height = height_fig,
+# #               family="Times")
+# 
+# eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
+# countFigNum = countFigNum+1
+
+load(paste(currentLoc,"/dataset_e3.rda", sep = ""))
+data_e3 = aggregate( data_y ~ sub*Color*Pattern, data = data_e3, FUN = "mean")
+numOfSub = length(unique(data_e3$sub))
+data_e3 = data_e3[order(data_e3$Pattern,data_e3$sub),]
+subName = NULL
+for( i in seq(max(data_e3$sub))){ subName = rbind(subName,paste("s", i, sep = ""))}
+data_e3$sub = subName[data_e3$sub]
+
+data_e3$saturation = saturation
+data_e3 = rbind(data_e1,data_e3)
+
+p <- ggplot(data_e3,aes(y = data_y, x = saturation)) +
+  # geom_boxplot(aes(colour = Color)) +
+  geom_point(aes(colour = Color,shape = Pattern),size = 3) +
+  scale_color_manual(values = config$gr) +
+  geom_smooth(method = "lm", se=F) + 
+  xlab(config$label_x) + ylab(config$label_y)
+
+p <- setFigureStyle(p)
+# p <- p + facet_wrap(~ Pattern)
+# fit1 = lm(data_y ~ saturation, data=data_e3)
+# Anova(fit1, type='III')
+fit1 = lmer(data_y ~ saturation + (1+saturation|sub), data = data_e3)
+
+print(paste("y = ", round(summary(fit1)$coefficients[2,"Estimate"], digits = 4),
+            "x + ", round(summary(fit1)$coefficients[1,"Estimate"], digits = 4),
+            ", t = ", round(summary(fit1)$coefficients[2,"t value"], digits = 4),
+            ", p = ", round(summary(fit1)$coefficients[2,"Pr(>|t|)"], digits = 5),
+            ", R = ", round(cor(data_e3$data_y,data_e3$saturation), digits = 4), sep=""))
+
+# print(summary(fit1))
+
+# fit1 = lm(data_y ~ saturation, data=data_e3[data_e3$Pattern=='Glare',])
+# summary(fit1)
+# cor(data_e3[data_e3$Pattern=='Glare',]$saturation,data_e3[data_e3$Pattern=='Glare',]$data_y)
+# 
+# fit1 = lm(data_y ~ saturation, data=data_e3[data_e3$Pattern=='Halo',])
+# summary(fit1)
+# cor(data_e3[data_e3$Pattern=='Halo',]$saturation,data_e3[data_e3$Pattern=='Halo',]$data_y)
+# 
+# fit1 = lm(data_y ~ saturation, data=data_e3[data_e3$Pattern=='Homogeneous',])
+# summary(fit1)
+# cor(data_e3[data_e3$Pattern=='Homogeneous',]$saturation,data_e3[data_e3$Pattern=='Homogeneous',]$data_y)
+
+# eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
+# countFigNum = countFigNum+1
+# p = ggarrange(p2, p3,
+#               labels = c("(a)", "(b)"),
+#               ncol = 2, nrow = 1)
+# plot(p)
+
+ggsave(file = paste(saveLoc,"saturation_cor.eps", sep = ""),
+       plot = p, dpi = 300,
+       width = 6, height = 4,
+       family="Times")
+
+# absor -------------------------------------------------------------------
+# fileLoc = "/Users/yuta/Dropbox/MATLAB/P03_GlarePupil/"
+# T_quantalAbsorptions <- readMat(paste(fileLoc,"T_quantalAbsorptionsNormalized.mat", sep = ""))
+# dat_mean$absorptions_L = T_quantalAbsorptions$T.quantalAbsorptionsNormalized[1,]
+# dat_mean$absorptions_M = T_quantalAbsorptions$T.quantalAbsorptionsNormalized[2,]
+# dat_mean$absorptions_S = T_quantalAbsorptions$T.quantalAbsorptionsNormalized[3,]
+# dat_mean$absorptions_ipRGC = T_quantalAbsorptions$T.quantalAbsorptionsNormalized[4,]
+# 
+# dat = NULL
+# dat <- cbind(dat,t(mapply(function(x, y) {return (x * y)},
+#                           dat_mean$data_y,
+#                           dat_mean$absorptions_L)))
+# dat <- cbind(dat,t(mapply(function(x, y) {return (x * y)},
+#                           dat_mean$data_y,
+#                           dat_mean$absorptions_M)))
+# dat <- cbind(dat,t(mapply(function(x, y) {return (x * y)},
+#                           dat_mean$data_y,
+#                           dat_mean$absorptions_S)))
+# dat <- cbind(dat,t(mapply(function(x, y) {return (x * y)},
+#                           dat_mean$data_y,
+#                           dat_mean$absorptions_ipRGC)))
+# 
+# dat = t(dat)
+# 
+# dat_absorptions <- data.frame(
+#   data_x = rep(380:780,4),
+#   data_y = dat,
+#   groups = rep(1:4,time=rep(length(color_data1),4)),
+#   Color = rep(rep(1:7,times=rep(401,7)),2)
+# )
+# 
+# gType = c('L','M','S','ipRGC')
+# dat_absorptions$groups = gType[dat_absorptions$groups]
+# dat_absorptions$groups = factor(dat_absorptions$groups, levels = gType)
+# 
+# gColor = c("Black","Blue","Cyan","Green","Yellow","Red","Magenta")
+# dat_absorptions$Color = gColor[dat_absorptions$Color]
+# dat_absorptions$Color <- factor(dat_absorptions$Color, 
+#                                 levels = gColor)
+# 
+# config$lim_y = c(0,0.005)
+# p <- disp(dat_absorptions,config,0,c("Color","Color"))
+# 
+# # p = p + 
+# #   geom_vline(xintercept=420.7, colour='black', linetype='longdash', size = 0.1) +
+# #   geom_vline(xintercept=480, colour='black', linetype='longdash', size = 0.1) +
+# #   geom_vline(xintercept=530.3, colour='black', linetype='longdash', size = 0.1) +
+# #   geom_vline(xintercept=558.9 , colour='black', linetype='longdash', size = 0.1)
+# 
+# p <- p + facet_grid(groups ~ .)
+# 
+# p <- setFigureStyle(p)
+# 
+# plot(p)
+# 
+# # correlation with rod and iprgc ------------------------------------------
+# load(paste(currentLoc,"/dataset_e1.rda", sep = ""))
+# data_e1 = aggregate( data_y ~ sub*Color*Pattern, data = data_e1, FUN = "mean")
+# data_e1 <- subset(data_e1, sub != 7 & sub != 13 )
+# numOfSub = length(unique(data_e1$sub))
+# 
+# # L:558.9nm, M:530.3nm, S:420.7nm, ipRGC:480
+# g = gType[4]
+# # dat_spec = subset(dat_absorptions, data_x == 421 & groups == g)
+# dat = tapply (dat_absorptions$data_y, list(dat_absorptions$groups,dat_absorptions$Color), sum)
+# dat = tapply (dat_mean$data_y, list(dat_mean$Color), sum)
+# 
+# data_e1$l_wave = rep(rep(dat[1,],times = rep(numOfSub,7)),2)
+# data_e1$m_wave = rep(rep(dat[2,],times = rep(numOfSub,7)),2)
+# data_e1$s_wave = rep(rep(dat[3,],times = rep(numOfSub,7)),2)
+# data_e1$iprgc = rep(rep(dat[4,],times = rep(numOfSub,7)),2)
+# 
+# # data_e1$s_wave = rep(rep(dat_spec$data_y,times = rep(numOfSub,7)),2)
+# # 
+# # dat_spec = subset(dat_absorptions, data_x == 480 & groups == g)
+# # data_e1$iprgc = rep(rep(dat_spec$data_y,times = rep(numOfSub,7)),2)
+# # 
+# # dat_spec = subset(dat_absorptions, data_x == 530 & groups == g)
+# # data_e1$m_wave = rep(rep(dat_spec$data_y,times = rep(numOfSub,7)),2)
+# # 
+# # dat_spec = subset(dat_absorptions, data_x == 559 & groups == g)
+# # data_e1$l_wave = rep(rep(dat_spec$data_y,times = rep(numOfSub,7)),2)
+# 
+# lm = lmer(data_y ~ s_wave + iprgc + m_wave + l_wave + (1|sub),
+#           data = data_e1)
+# 
+# print(summary(lm))
+# 
+# ggsave(file = paste(saveLoc,"colorDest2.pdf", sep = ""), plot = p, dpi = 300, width = width_fig, height = height_fig)
+
+# for (i in 1:7){
+# t = d$data_y[d$order==i]
+# print(paste(g[i]," : ",sum(t), sep = ""))
+# }
+# 
+# 
+# 
+# # show Lab map ------------------------------------------------------------
+# Lab_data <- readMat(paste(fileLoc,"SRDespp/dataLab.mat", sep = ""))
+# numOfLocation = 3
+# 
+# a = NULL
+# b = NULL
+# for (i in 2:7){
+#   tmp = Lab_data[["dataLab"]][[i]][[1]]
+#   a = cbind(a, t(tmp[2:3,1]))
+#   b = cbind(b, t(tmp[2:3,2]))
+# }
+# 
+# 
+# g <- c("Blue","Cyan","Green","Yellow","Red","Magenta")
+# dataLab <- data.frame(
+#   a = t(a),
+#   b = t(b),
+#   sample = rep(g,times=rep(2,6)),
+#   cell = rep(c(1,2),6)
+# )
+# tmp = Lab_data[["dataLab"]][[1]][[1]]
+# 
+# white <- data.frame(
+#   a = tmp[2:3,1],
+#   b = tmp[2:3,2],
+#   sample = rep("Black",2),
+#   cell = c(1,2)
+# )
+# dataLab <- rbind ( white,dataLab )
+# 
+# config <- list(lim_x=c(0.5,8),
+#                lim_y = c(-20,40),
+#                label_x = "a",
+#                label_y = "b",
+#                gr=c("Black","Blue","Cyan","Green","Magenta","Red","Yellow")
+# )
+# 
+# makeCircle <- function(center, diameter, npoints){
+#   r = diameter / 2
+#   tw = seq(0, 2*pi, length.out = npoints)
+#   x = center[1] + r * cos(tw)
+#   y = center[2] + r * sin(tw)
+#   return(data.frame(x=x,y=y))
+# }
+# 
+# circleDat <- makeCircle(c(0,0),800,npoints = 100)
+# 
+# p <- ggplot()+
+#   geom_point(aes(x = a, y = b, fill = sample,colour = sample,size=10),data=dataLab) + 
+#   scale_colour_manual(values = config$gr) +
+#  
+#    geom_line(aes(x=seq(-450,450,length=5), y = rep(0,5), group = 1), color="black") +
+#   geom_line(aes(x= rep(0,5), y =seq(-450,450,length=5), group = 1), color="black") +
+#   # geom_line(aes(x=seq(config$lim_x[1]-1,config$lim_x[2]+1,length=14),y=rep(0,14), group = 1), color="black") +
+#   geom_text(aes(x = a, y = b, label = cell),data=dataLab,color="white") +
+# # p<-p+ggplot() + 
+#   geom_path(aes(x=circleDat$x, y=circleDat$y))+
+#   
+#   scale_y_continuous(breaks = seq(-400,400,100),expand = c(0, 0)) +
+#   scale_x_continuous(breaks = seq(-400,400,100),expand = c(0, 0)) +
+# 
+#   coord_fixed()
+# 
+# p <- p +theme(
+#   axis.title.x = element_text(size=16),
+#   axis.title.y = element_text(size=16),
+#   panel.border = element_blank(), 
+#   axis.line = element_line(),
+#   axis.text.x = element_blank(),
+#   axis.text.y = element_blank(),
+#   panel.background = element_rect(fill = "transparent",size = 0.5),
+#   panel.grid.major = element_line(colour = "gray", size = 0.05),
+#   # panel.grid.major.x = element_line(colour = NA),
+#   panel.grid.minor = element_line(colour = NA),
+#   axis.ticks = element_line(colour = "black",size = 0.5),
+#   text = element_text(size = 16,family = "Times"),
+#   legend.position = 'none',
+#   axis.line.x = element_blank(),
+#   axis.line.y = element_blank(),
+#   axis.ticks.x = element_blank(),
+#   axis.ticks.y = element_blank()
+# )
+# # p = setBarFigureStyle(p)
+# # p <- p +
+# #   ggplot(circleDat,aes(x=x,y=y)) +
+# #   # geom_point(size = 10, fill = "transparent", colour = "black", shape = 21)
+# # # title('Lab chromaticity diagram')
+# print(p)
+# ggsave(file = paste(saveLoc,"labColorSpace.eps", sep = ""),
+#        plot = p, 
+#        dpi = 300, 
+#        width = width_fig, height = height_fig,
+#        family="Times")
+# # p <- ggplot(dat,aes(x,y)) + geom_path()
+# 
+# # 
+# # p <- ggplot(dat,aes(x,y)) + geom_path()
