@@ -6,7 +6,7 @@ At the beginning of the trial, the fixation point was presented prior to the sti
 
 The probability with which the participants chose the reference stimulus was calculated. The average probability in each target luminance contrast was fit with a psychometric function which implements the maximum-likelihood method using the Palamedes Toolbox (Prins and Kingdom, 2009). Analysis of the 2AFC task revealed that the brightness perception was clearly enhanced by the glare illusion in every contrast condition used in the prior experiment as shown in Supplemental Figure 1. We estimated the ‘illusory’ brightness to the glare illusion in Contrast of 0.58, 0.63 and 0.57 from Point of Subjective Equality (PSE): 0.685, 0.712 and 0.732 respectively. The results indicated that the perceived brightness enhancement also occurred in the low luminance contrast condition.
 
-![figure_sup](https://github.com/suzuki970/Experimental_data/edit/master/P01/Additional%20information/figure_sup.png)
+![figure](https://github.com/suzuki970/Experimental_data/edit/master/P01/Additional%20information/figure_sup.png?raw=true)
 
 
 Copyright 2019 Yuta Suzuki
