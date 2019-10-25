@@ -7,3 +7,4 @@ Copyright 2019 Yuta Suzuki
   * EEG data and Pupil data are saved as "dat_xxx.mat" in *'matData'*.
 
 ### Article information
+Suzuki, Y., Minami, T. & Nakauchi, S. Pupil Constriction in the Glare Illusion Modulates the Steady-State Visual Evoked Potentials. Neuroscience 416, 221–228 (2019).https://doi.org/10.1016/j.neuroscience.2019.08.003
