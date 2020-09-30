@@ -1,4 +1,4 @@
-## Experimental data for *"Association between pupil dilation and implicit processing prior to object recognition via insight"*
+## Experimental data for *"Colorful glares_ Effects of colors on brightness illusions measured with pupillometry"*
 Copyright 2018 Yuta Suzuki
 
 * *'Rscript'* is for the initialization and setting R environment. 
