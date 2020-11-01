@@ -1,9 +1,9 @@
-## Experimental data for *"Pupillary Response on Luminosity Perception"*
-Copyright 2019 Yuta Suzuki
+## Experimental data for *"Pupillary constriction as an indicator of illusory luminosity perception in the glare illusion"*
+Copyright 2020 Yuta Suzuki
 
-* *'Rscript'* is for the initialization and setting R environment. 
-  * to set the R environment up, the packages described in *'initilization.R'* (they are commented out) need to be installed.
-* *'Rscript_data_analysis'* is for analyzing and making the figures. 
-  * Pupil and behavioral data are saved as "dat_xxx.mat" in *'matData'*.
+* *'Figure.Rmd'* is forgenerating figure in the paper. 
+  * set working directory to source file location.
+ 
+  *'data'* folder contains the experimental data.
   
   ### Article information
