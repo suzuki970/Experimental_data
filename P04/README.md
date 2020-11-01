@@ -2,8 +2,8 @@
 Copyright 2020 Yuta Suzuki
 
 * *'Figure.Rmd'* is forgenerating figure in the paper. 
-  * set working directory to source file location.
+   set working directory to source file location.
  
-  *'data'* folder contains the experimental data.
+* *'data'* folder contains the experimental data.
   
-  ### Article information
+### Article information
