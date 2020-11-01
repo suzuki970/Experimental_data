@@ -3,7 +3,7 @@ Copyright 2020 Yuta Suzuki
 
 * *'Figure.Rmd'* is for generating figures in the paper.
 
-   set working directory to source file location when you run the script.
+   - set working directory to source file location when you run the script.
  
 * *'data'* folder contains the experimental data.
   
