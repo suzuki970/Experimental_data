@@ -2,7 +2,7 @@
 
 Experimental data for "Pupillary constriction as an indicator of illusory luminosity perception in the glare illusion"
 
-Yuta Suzuki, Takuya Fuji, Tetsuto Minami, Shigeki Nakauchi
+Yuta Suzuki, Takuya Fujii, Tetsuto Minami, Shigeki Nakauchi
 
 *Corresponding author: Yuta Suzuki
 NTT Communication Science Laboratories, NTT Corporation, Atsugi 243-0198, Japan
@@ -16,10 +16,10 @@ library(ggpubr)
 library(Cairo)
 
 if(exists(".anovakun.env")){
-  sys.source("anovakun_485.R", envir = .anovakun.env)
+  sys.source("./data/anovakun_485.R", envir = .anovakun.env)
 }else{
   .anovakun.env <- new.env()
-  sys.source("anovakun_485.R", envir = .anovakun.env)
+  sys.source("./data/anovakun_485.R", envir = .anovakun.env)
   attach(.anovakun.env)
 }
 subName = NULL
@@ -335,7 +335,7 @@ orderName = list(c("Radial", "Control"),c("Kanizsa", "No-triangle"))
 factors = list(f1,f2)
 
 #### making dataset for e1 #################################
-data=fromJSON(file="./data_e1.json")
+data=fromJSON(file="./data/data_e1.json")
 dat <- list(matrix(unlist(data$y),nrow=length(data$y),byrow=T),
             matrix(unlist(data$gazeX),nrow=length(data$gazeX),byrow=T),
             matrix(unlist(data$gazeY),nrow=length(data$gazeY),byrow=T),
@@ -363,13 +363,8 @@ f1 = "Pattern"
 g1 <- c("Radial", "Control")
 
 #### making dataset for e1 #################################
-# dat <- readMat("./data_exp2.mat")
-# lut <- readMat("./lut_desplay++.mat")
-dat = fromJSON(file="./data_e2.json")
-lut = unlist(fromJSON(file="./data_disp.json"))
-# dat <- list((matrix(unlist(data$PLR),nrow=length(data$PLR),byrow=T)),
-#            t(unlist(data$Sub)),t(unlist(data$Condition)),t(unlist(data$taskRes)))
-# names(dat) <- c('y', 'sub', 'condition','taskRes')
+dat = fromJSON(file="./data/data_e2.json")
+lut = unlist(fromJSON(file="./data/data_disp.json"))
 
 numOfSub = length(unique(dat$sub))
 
@@ -422,7 +417,7 @@ go1 = c("0.97", "0.84", "0.56", "0.46", "0")
 go2 = c("Glare","Uniform","Halo")
 
 #### making dataset for e1 #################################
-data=fromJSON(file="./data_e3.json")
+data=fromJSON(file="./data/data_e3.json")
 dat <- list(matrix(unlist(data$y),nrow=length(data$y),byrow=T),
             t(unlist(data$sub)),t(unlist(data$condition)),t(unlist(data$taskRes)))
 names(dat) <- c('y', 'sub', 'condition', 'taskRes')
@@ -511,8 +506,6 @@ print("          averaged in pupil size         ")
 print("-----------------------------------------")
 data_e1_anova = aggregate( data_y ~ sub*Pattern*Shape, data = data_e1, FUN = "mean")
 anovakun(data_e1_anova,"sAB",gg=T,long=T, peta=T)
-# output2wayANOVA(forDrawingSigANOVA)
-# sigPair = makeSigPair(forDrawingPost)
 
 # ### bar plot
 data_e1_plot = aggregate( data_y ~ Pattern*Shape, data = data_e1, FUN = "mean")
@@ -598,7 +591,6 @@ plot(p)
 
 # Figure 4
 ```{r, message=FALSE, warning=FALSE}
-
 
 CairoFonts(regular = "Times","Times")
 
