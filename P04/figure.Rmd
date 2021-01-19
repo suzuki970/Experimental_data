@@ -144,7 +144,7 @@ setBarFigureStyle <- function(gData,size_font=20){
     plot.background=element_rect(fill="transparent", colour=NA),
     legend.background=element_rect(fill="transparent", colour=NA),
     plot.title = element_text(size = size_font)
-    )
+  )
   return(gData)
 }
 
@@ -528,7 +528,7 @@ p <- ggplot(data_e1_plot, aes(x = cell, y = data_y, group = Shape))+
   scale_x_continuous(breaks = 1:2, 
                      labels = c(expression(paste("Radial")),
                                 expression(paste("Control"))))
-# 
+
 p = setBarFigureStyle(p,SIZE_FONT)
 p <- p + facet_grid(. ~ Shape)
 
@@ -541,6 +541,18 @@ p <- p + theme(
 
 eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
 countFigNum = countFigNum+1
+
+g = c("Kanizsa:radial","Kanizsa:control","No-triangle:radial","No-triangle:control")
+
+numOfSub = length(unique(data_e1_anova$sub))
+
+f = data.frame(
+  sub = as.character(unique(data_e1_anova$sub)),
+  y = matrix(data_e1_anova$data_y,nrow = numOfSub)
+)
+
+colnames(f) <- c("subject",g)
+write.csv(f, "data/data_bayesian.csv",row.names=FALSE)
 
 # # # figure output -----------------------------------------------------------
 p = combineGraphs(seq(1,countFigNum-1),'p',NULL)
@@ -584,6 +596,18 @@ p <- p + theme(
   axis.ticks.x = element_blank(),
   axis.line.x = element_blank()
 )
+
+g = c("Kanizsa:radial","Kanizsa:control")
+
+numOfSub = length(unique(data_e2$sub))
+
+f = data.frame(
+  sub = as.character(unique(data_e2$sub)),
+  y = matrix(data_e2$data_y,nrow = numOfSub)
+)
+
+colnames(f) <- c("subject",g)
+write.csv(f, "data/data_e2_bayesian.csv",row.names=FALSE)
 
 # # # figure output -----------------------------------------------------------
 plot(p)
@@ -673,6 +697,66 @@ p <- p + theme(
 
 eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
 countFigNum = countFigNum+1
+
+g <- c("Glare:0.97", "Glare:0.84", "Glare:0.56", "Glare:0.46", "0",
+       "Halo:0.97", "Halo:0.84", "Halo:0.56", "Halo:0.46")
+
+numOfSub = length(unique(data_e1_box$sub))
+
+f = data.frame(
+  sub = as.character(unique(data_e1_box$sub)),
+  y = matrix(data_e1_box$data_y,nrow = numOfSub)
+)
+
+colnames(f) <- c("subject",g)
+write.csv(f, "data/e3_bayesian.csv",row.names=FALSE)
+
+load("dataset_e3.rda")
+# data_task = aggregate( data_y ~ sub*Angle*Pattern, data = data_task, FUN = "mean")
+
+# data_e1_box$task = data_task$data_y
+# sd = aggregate( data_y ~ Angle*Pattern, data = data_e1_box, FUN = "sd") 
+# sd$data_y = sd$data_y / sqrt(numOfSub)
+
+sd_task = aggregate( data_y ~ Angle*Pattern, data = data_task, FUN = "sd")
+sd_task$data_y = sd_task$data_y / sqrt(numOfSub)
+
+data_task_ave = aggregate( data_y ~ Angle*Pattern, data = data_task, FUN = "mean")
+# data_e1_box_ave$task = aggregate( task ~ Angle*Pattern, data = data_e1_box, FUN = "mean")$task
+
+# data_e1_box_ave$SE_min_pupil = data_e1_box_ave$data_y - sd$data_y
+# data_e1_box_ave$SE_max_pupil = data_e1_box_ave$data_y + sd$data_y 
+data_task_ave$SE_min_task  = data_task_ave$data_y - sd_task$data_y
+data_task_ave$SE_max_task  = data_task_ave$data_y + sd_task$data_y
+
+g1 =  c(0.97,0.84,0.56,0.46,0,-0.46,-0.56,-0.84,-0.97)
+g0 = c(58,54,42,38,0,-38,-42,-54,-58)
+
+for(i in 1:length(g0)){
+  data_task[data_task$cell == g0[i],]$cell = g1[i]
+}
+
+fit <- quickpsy(data_task, cell, data_y, n)
+data_task_ave$Angle = g1
+
+p <- ggplot(data_task_ave,aes(x = Angle, y = data_y )) +
+  geom_errorbar(aes(ymin = SE_min_task, ymax = SE_max_task),width = 0.001, size=0.2) +
+  # geom_errorbarh(aes(xmin= SE_min_pupil, xmax = SE_max_pupil),height = 0.01, size=0.2) +
+  geom_point(aes(shape = Pattern,color = Angle,fill=Angle), size = 2)+
+  xlab('Averaged pupil change [mm]')+
+  geom_line(data = fit$curves, aes(x = x, y = y))+
+  # scale_fill_grey(start=0.8, end=0.2)
+  # scale_fill_gradient(low = "black", high = "black") +
+  scale_color_gradient(low = "black", high = "gray80") 
+
+p = setBarFigureStyle(p,fontSize)
+width_fig=6
+height_fig=5
+
+ggsave(file = paste(saveLoc,"/test.eps", sep = ""),
+       plot = p, dpi = 100,
+       width = width_fig, height = height_fig,family="Times")
+
 
 ## figure output -----------------------------------------------------------
 p = combineGraphs(seq(1,countFigNum-1),'p',NULL)
