@@ -1,0 +1,319 @@
+---
+title: "Result notes"
+author: "Yuta Suzuki"
+date: "Mar,9,2021"
+output: html_document
+  # word_document:
+  # reference_docx: results.docx
+draft: yes
+# 
+---
+  <style type="text/css">
+  body{
+    font-size: 14pt;
+    line-height: 2;
+    width: 100%;
+  }
+</style>
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# tinytex::install_tinytex()
+```
+
+# Article information
+
+Experimental data for "Pupillary constriction as an indicator of illusory luminosity perception in the glare illusion"
+
+Yuta Suzuki, Takuya Fujii, Tetsuto Minami, Shigeki Nakauchi
+
+*Corresponding author: Yuta Suzuki
+NTT Communication Science Laboratories, NTT Corporation, Atsugi 243-0198, Japan
+Tel: +81-046-240-3525 , E-mail: yuuta.suzuki.fc@hco.ntt.co.jp
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+library(rjson)
+library(ggplot2)
+library(ggpubr)
+library(Cairo)
+library(gridExtra)
+library(effsize)
+library(BayesFactor)
+library(rjson)
+library(reshape)
+library(quickpsy)
+require("R.matlab")
+
+if(exists(".anovakun.env")){
+  sys.source("./data/anovakun_485.R", envir = .anovakun.env)
+}else{
+  .anovakun.env <- new.env()
+  sys.source("./data/anovakun_485.R", envir = .anovakun.env)
+  attach(.anovakun.env)
+}
+subName = NULL
+for( i in seq(30)){
+  if(i<10){subName = rbind(subName,paste("s0", i, sep = ""))}
+  else{subName = rbind(subName,paste("s", i, sep = ""))}
+}
+
+makeSigPair <- function(forDrawingPost) {
+  
+  sigPairA = NULL
+  if(length(forDrawingPost[["A"]]) > 1) {
+    t = as.character(forDrawingPost[["A"]][["bontab"]][["significance"]])
+    p = forDrawingPost[["A"]][["bontab"]][["adj.p"]]
+    for(i in 1:length(t)){
+      t0 = strsplit(t[i], " ")
+      if(t0[[1]][4] == "*"){
+        sigPairA = rbind(sigPairA,t0[[1]][1:3])
+      }
+      
+      if(t0[[1]][2] == "="){
+        sigPairA = rbind(sigPairA,t0[[1]][1:3])
+      }
+    }
+    sigPairA = cbind(sigPairA,p)
+  }
+  
+  sigPairB = NULL
+  if(length(forDrawingPost[["B"]]) > 1) {
+    t = as.character(forDrawingPost[["B"]][["bontab"]][["significance"]])
+    for(i in 1:length(t)){
+      t0 = strsplit(t[i], " ")
+      if(t0[[1]][4] == "*"){
+        sigPairB = rbind(sigPairB,t0[[1]][1:3])
+      }
+    }
+  }
+  return(rbind(sigPairA,sigPairB))
+}
+output1wayANOVA <- function(forDrawingSigANOVA) {
+  fVal <- c("A")
+  befSt <- paste("F(",forDrawingSigANOVA[1,]$df.col,",",round(forDrawingSigANOVA[2,]$df.col, digits = 3),") = ", signif(forDrawingSigANOVA[2,]$f.col,digits = 4),",", sep = '')
+  if( forDrawingSigANOVA[2,]$p.col > 0.001){
+    pVal<- paste("p = ",signif(forDrawingSigANOVA[2,]$p.col,digits = 3),",", sep = '')
+  }else{
+    pVal<- paste("p < 0.001,", sep = '')
+  }
+  etaVal<- paste("η2p =",signif(forDrawingSigANOVA[2,]$`p.eta^2`,digits = 3))
+  
+  cat("Factor",fVal[1],": \n")
+  cat( befSt, pVal, etaVal,"\n")
+}
+
+```
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+load("./data/dataset_e1.rda")
+numOfSub = length(unique(data_e1$sub))
+data_e1 = data_e1[data_e1$data_x >= 0,]
+
+data_e1_anova = aggregate( data_y ~ sub*Pattern*Shape, data = data_e1, FUN = "mean")
+anovakun(data_e1_anova,"sAB",gg=T,long=T, peta=T)
+anovatab_e1 = forDrawingSigANOVA
+mComp = forDrawingPost[["A:B"]][["simtab"]]
+
+####### gaze duration ####### 
+dat <- readMat("./data/data_duration.mat")
+g1 <- c("Kanizsa with a radius", "No-triangle with a radius", "Kanizsa with a control", "No-triangle with a control")
+ind_data <- data.frame(
+ sub = subName[rep(dat$sub,max(dat$condition))],
+  condition = g1[rep(dat$condition,times=rep(max(dat$sub),max(dat$condition)))],
+ gaze =  dat$durationAll
+)
+
+ind_data$condition <- factor(ind_data$condition,levels = g1)
+anovakun(ind_data,"sA",gg=T,long=T, peta=T)
+gazeDur <- forDrawingSigANOVA
+```
+
+# Results
+## Experiment 1
+A two-way repeated-measures ANOVA for average pupillary changes revealed a significant main effect of both pattern (i.e., radius and control) and shape (i.e., the Kanizsa triangle and non-triangle) and their interaction on the pupil diameter (
+$F$(1,`r round(anovatab_e1[1,]['df.col'],3)`) = `r round(anovatab_e1[2,]['f.col'],3)`, $p$ = `r round(anovatab_e1[2,]['p.col'],3)`, $\eta^2_p$ = `r round(anovatab_e1[2,]['p.eta^2'],3)`;
+$F$(1,`r round(anovatab_e1[3,]['df.col'],3)`) = `r round(anovatab_e1[4,]['f.col'],3)`, $p$ = `r round(anovatab_e1[4,]['p.col'],3)`, $\eta^2_p$ = `r round(anovatab_e1[4,]['p.eta^2'],3)`;
+$F$(1,`r round(anovatab_e1[5,]['df.col'],3)`) = `r round(anovatab_e1[6,]['f.col'],3)`, $p$ = `r round(anovatab_e1[6,]['p.col'],3)`, $\eta^2_p$ = `r round(anovatab_e1[6,]['p.eta^2'],3)`).
+__Figure 2a__ illustrates the grand-averaged time-course of pupillary changes among the participants during the whole presentation time, and __Figure 2b__ shows the averaged pupillary constriction from 0 ms to 4,000 ms for each pattern and shape condition. We observed pupillary dilation at approximately 500 ms from the stimulus onset owing to the luminance difference between the ISI and baseline. Importantly, multiple comparisons showed that the pupillary response to the Kanizsa triangle with a radial pattern was larger than the response to the Kanizsa triangle with a control pattern and to the non-triangle with radial pattern conditions ($F$(1,`r round(mComp[2,]['df.col'],3)`) = `r round(mComp[1,]['f.col'],3)`, $p$ = `r round(mComp[1,]['p.col'],3)`, $\eta^2_p$ = `r round(mComp[1,]['p.eta^2'],3)`; $F$(1,`r round(mComp[6,]['df.col'],3)`) = `r round(mComp[5,]['f.col'],3)`, $p$ = `r round(mComp[5,]['p.col'],3)`, $\eta^2_p$ = `r round(mComp[5,]['p.eta^2'],3)`). Furthermore, no significant difference was observed between the Kanizsa triangle and non-triangle with control pattern conditions 
+($F$(1,`r round(mComp[8,]['df.col'],3)`) = `r round(mComp[7,]['f.col'],3)`, $p$ = `r round(mComp[7,]['p.col'],3)`, $\eta^2_p$ = `r round(mComp[7,]['p.eta^2'],3)`) and the non-triangle with radial and control pattern conditions 
+($F$(1,`r round(mComp[4,]['df.col'],3)`) = `r round(mComp[3,]['f.col'],3)`, $p$ = `r round(mComp[3,]['p.col'],3)`, $\eta^2_p$ = `r round(mComp[3,]['p.eta^2'],3)`). 
+Figure 2c shows the averaged gaze map for both the Kanizsa triangle and non-triangle with radial pattern conditions. Because the participants were instructed to pay attention to the central fixation cross, the mean duration of gaze fixation was focused on the central region of the stimulus. A one-way ANOVA for the mean duration time of gaze fixation in the visual angle of 1 degree was not significant in any pair of pattern and shape ($F$(1,`r round(gazeDur[2,]['df.col'],3)`) = `r round(gazeDur[2,]['f.col'],3)`, $p$ = `r round(gazeDur[2,]['p.col'],3)`, $\eta^2_p$ = `r round(gazeDur[2,]['p.eta^2'],3)`).
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+
+```
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+load("./data/dataset_e2.rda")
+numOfSub = length(unique(data_e2$sub))
+anovakun(data_e2,"sA",gg=T,long=T, peta=T)
+anovatab_e2 = forDrawingSigANOVA
+
+t1 = t.test(data_e2[data_e2$Pattern == 'Radial',]$data_y, mu=0)
+t2 = t.test(data_e2[data_e2$Pattern == 'Control',]$data_y, mu=0)
+
+load('./data/dataset_e1.rda')
+load("./data/dataset_e2.rda")
+data_e1_anova = aggregate( data_y ~ sub*Pattern*Shape, data = data_e1, FUN = "mean")
+data_e1e2 = data_e1_anova[data_e1_anova$Shape == 'Kanizsa',]
+data_e1e2$data_y_e2 = data_e2$data_y
+data_e1e2 = data_e1e2[data_e1e2$sub != 5,]
+
+res = lm( data_y ~ data_y_e2 , data = data_e1e2)
+# print(summary(res))
+r = cor.test(data_e1e2$data_y,data_e1e2$data_y_e2)
+tVal = round(summary(res)[["coefficients"]]['data_y_e2',]['t value'],4)
+pVal = round(summary(res)[["coefficients"]]['data_y_e2',]['Pr(>|t|)'],4)
+
+```
+## Experiment 2
+A one-way repeated-measures ANOVA for the adjusted luminance to the Kanizsa triangle indicated that the Kanizsa triangle with a radial pattern was evaluated as brighter than the triangle with a control pattern 
+($F$(1,`r round(anovatab_e2[1,]['df.col'],3)`) = `r round(anovatab_e2[2,]['f.col'],3)`, $p$ = `r round(anovatab_e2[2,]['p.col'],3)`, $\eta^2_p$ = `r round(anovatab_e2[2,]['p.eta^2'],3)`)
+, as shown in Figure 3a. Additionally, the adjusted luminance for both the radial and control patterns was higher than that for the uniform pattern of the reference stimulus 
+(t(`r numOfSub-1`)= `r round(t1[["statistic"]][["t"]],3)`, p = `r round(t1[["p.value"]],3)`, BF10 = 1538; 
+t(`r numOfSub-1`) = `r round(t2[["statistic"]][["t"]],3)`, p = `r round(t2[["p.value"]],3)`, BF10 = 5.175, respectively). 
+We subsequently analyzed the association between adjusted brightness and average pupillary constriction for the Kanizsa triangle measured in Experiment 1 using a simple linear regression model. The brightness for the Kanizsa triangle with the radial and control patterns was marginally correlated to pupillary constriction 
+($y$ = `r round(summary(res)[['coefficients']]['data_y_e2',]['Estimate'],3)`$x$ + `r round(summary(res)[['coefficients']]['(Intercept)',]['Estimate'],3)`, $R$ = `r round(r[['estimate']][['cor']],3)`, $t$ = `r tVal`, $p$ = `r pVal`) as shown in Figure 3b. 
+
+
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+load("./data/dataset_e3.rda")
+numOfSub = length(unique(data_e1$sub))
+data_e1$sub = subName[data_e1$sub]
+
+### show graph
+data_e1_ave = aggregate( data_y ~ sub*Angle*Pattern*data_x, data = data_e1, FUN = "mean")
+data_e1_ave = data_e1_ave[data_e1_ave$Pattern!='Uniform',]
+
+data_e1_0deg = data_e1[data_e1$Pattern == 'Uniform',]
+data_e1_0deg = aggregate( data_y ~ Angle*Pattern*data_x, data = data_e1_0deg, FUN = "mean")
+data_e1_0deg = rbind(data_e1_0deg,data_e1_0deg,data_e1_0deg,data_e1_0deg,
+                     data_e1_0deg,data_e1_0deg,data_e1_0deg,data_e1_0deg)
+
+# # ############# ANOVA ########################
+data_e1_ave = data_e1_ave[data_e1_ave$data_x >= 0,]
+data_e1_anova = aggregate( data_y ~ sub*Angle*Pattern, data = data_e1_ave, FUN = "mean")
+
+anovakun(data_e1_anova,"sAB",gg=T,long=T, peta=T)
+anovatab_e3 = forDrawingSigANOVA
+post_e3 = forDrawingPost[["A:B"]][["simtab"]]
+
+load("./data/dataset_e3.rda")
+load("./data/dataset_e3_sensitivity.rda")
+# sd_task = aggregate( data_y ~ Angle*Pattern, data = data_task, FUN = "sd")
+# sd_task$data_y = sd_task$data_y / sqrt(numOfSub)
+# data_task_ave = aggregate( data_y ~ Angle*Pattern, data = data_task, FUN = "mean")
+# 
+# data_task_ave$SE_min_task  = data_task_ave$data_y - sd_task$data_y
+# data_task_ave$SE_max_task  = data_task_ave$data_y + sd_task$data_y
+# 
+# g1 =  c(0.97,0.84,0.56,0.46,0,-0.46,-0.56,-0.84,-0.97)
+# g0 = c(58,54,42,38,0,-38,-42,-54,-58)
+# 
+# for(i in 1:length(g0)){
+#   data_task[data_task$cell == g0[i],]$cell = g1[i]
+# }
+# 
+# fit <- quickpsy(data_task, cell, data_y, n)
+# data_task_ave$Angle = g1
+
+
+# task ----------------------------------------------------------------
+# g <- c("Glare:0.97", "Glare:0.84", "Glare:0.56", "Glare:0.46", "0",
+#        "Halo:0.97", "Halo:0.84", "Halo:0.56", "Halo:0.46")
+# 
+# load("dataset_e3.rda")
+# 
+# data_task_anova = aggregate( data_y ~ sub*Angle*Pattern, data = data_task, FUN = "mean")
+# 
+# g1 =  c(0.97,0.84,0.56,0.46,0,-0.46,-0.56,-0.84,-0.97)
+# g0 = c(58,54,42,38,0,-38,-42,-54,-58)
+# g2 =  c("a","b","c","d","e","a","b","c","d")
+# 
+# for(i in 1:length(g0)){
+#   data_task[data_task$cell == g0[i],]$cell = g1[i]
+# }
+# 
+# allfit = data.frame()
+# for(iSub in 1:max(data_task$sub)){
+#   if(dim(data_task[data_task$sub == iSub,])[1] > 0){
+#     tmp_fit = quickpsy(data_task[data_task$sub == iSub,], cell, data_y, n)
+#     tmp_fit = data.frame(
+#       sub = iSub,
+#       x = tmp_fit$curves$x,
+#       y = tmp_fit$curves$y
+#     )
+#     allfit = rbind(allfit,tmp_fit)
+#   }
+# }
+# 
+# fNum = 0.75
+# th = NULL
+# for(iSub in 1:max(data_task$sub)){
+#   if(dim(allfit[allfit$sub == iSub,])[1] > 0){
+#     ind = which( abs(allfit[allfit$sub == iSub,]$y-fNum) == min(abs(allfit[allfit$sub == iSub,]$y-fNum))) 
+#     th = rbind(th,allfit[allfit$sub == iSub,]$x[ind])
+#   }
+# }
+# 
+# ind = order(th)
+# mmName = unique(allfit$sub)
+# data_e1_ave = aggregate( data_y ~ sub*Angle*Pattern*data_x, data = data_e1, FUN = "mean")
+# data_e1_ave = data_e1_ave[data_e1_ave$data_x >= 0,]
+# data_e1_ave = aggregate( data_y ~ sub*Angle*Pattern, data = data_e1_ave, FUN = "mean")
+# data_e1_ave$group = ''
+# allfit$group = ''
+# for(iRoop in 1:length(ind)){ 
+#   if(iRoop < length(ind)/2+1){
+#     data_e1_ave[data_e1_ave$sub == mmName[ind[iRoop]],]$group = 'low'
+#     allfit[allfit$sub == mmName[ind[iRoop]],]$group = 'low'
+#   }else{
+#     data_e1_ave[data_e1_ave$sub == mmName[ind[iRoop]],]$group = 'high'
+#     allfit[allfit$sub == mmName[ind[iRoop]],]$group = 'high'
+#   }
+# }
+# 
+# fit <- quickpsy(data_task, cell, data_y, n)
+# data_task_ave$Angle = g1
+# data_task_anova = data_task_anova[order(data_task_anova$sub),]
+# data_task_anova$Angle = g1
+# data_e1_ave = data_e1_ave[order(data_e1_ave$sub),]
+# data_e1_ave$Angle = g2
+# allfit$sub = subName[allfit$sub]
+# 
+# data_e1_ave = data_e1_ave[,c(1,2,3,5,4)]
+# data_e1_ave$sub = subName[data_e1_ave$sub]
+# data_e1_ave = data_e1_ave[data_e1_ave$Pattern != 'Uniform',]
+# 
+# save(data_e1_ave,file = "dataset_e3_sensitivity.rda")
+
+t = data_e1_ave[data_e1_ave$group == 'low',]
+t$group = NULL
+anovakun(t,"sAB",gg=T,long=T, peta=T)
+sensi_low = forDrawingPost[["A:B"]][["simtab"]]
+
+t = data_e1_ave[data_e1_ave$group == 'high',]
+t$group = NULL
+anovakun(t,"sAB",gg=T,long=T, peta=T)
+sensi_high = forDrawingPost[["A:B"]][["simtab"]]
+
+```
+## Experiment 3
+__Figure 5a__ illustrates the averaged pupillary changes among participants during the whole presentation time for each pattern (glare, halo, and uniform) and contrast conditions. A two-way repeated-measures ANOVA for the averaged pupillary responses for each condition revealed a significant main effect of the pattern condition 
+($F$(1,`r round(anovatab_e3[5,]['df.col'],3)`) = `r round(anovatab_e3[4,]['f.col'],3)`, $p$ = `r round(anovatab_e3[4,]['p.col'],3)`, $\eta^2_p$ = `r round(anovatab_e3[4,]['p.eta^2'],3)`). 
+However, the main effect of the contrast and the interaction between pattern and contrast were not significant 
+($F$(1,`r round(anovatab_e3[3,]['df.col'],3)`) = `r round(anovatab_e3[2,]['f.col'],3)`, $p$ = `r round(anovatab_e3[2,]['p.col'],3)`, $\eta^2_p$ = `r round(anovatab_e3[2,]['p.eta^2'],3)`;
+$F$(1,`r round(anovatab_e3[7,]['df.col'],3)`) = `r round(anovatab_e3[6,]['f.col'],3)`, $p$ = `r round(anovatab_e3[6,]['p.col'],3)`, $\eta^2_p$ = `r round(anovatab_e3[6,]['p.eta^2'],3)`, respectively).
+
+
+The analysis revealed that the large pupillary constriction for the glare illusion with a gradation contrast of 0.97, 0.84, and 0.56 favored H1 (i.e., the strong evidence for pupillary constriction differences between glare and control) 
+($F$(1,`r round(post_e3[6,]['df.col'],3)`) = `r round(post_e3[5,]['f.col'],3)`, $p$ = `r round(post_e3[5,]['p.col'],3)`, $\eta^2_p$ = `r round(post_e3[5,]['p.eta^2'],3)`, BF10 = 12.346;
+$F$(1,`r round(post_e3[8,]['df.col'],3)`) = `r round(post_e3[7,]['f.col'],3)`, $p$ = `r round(post_e3[7,]['p.col'],3)`, $\eta^2_p$ = `r round(post_e3[7,]['p.eta^2'],3)`, BF10 = 47.729;
+$F$(1,`r round(post_e3[10,]['df.col'],3)`) = `r round(post_e3[9,]['f.col'],3)`, $p$ = `r round(post_e3[9,]['p.col'],3)`, $\eta^2_p$ = `r round(post_e3[9,]['p.eta^2'],3)`, BF10 = 604.037;
+$F$(1,`r round(post_e3[12,]['df.col'],3)`) = `r round(post_e3[11,]['f.col'],3)`, $p$ = `r round(post_e3[11,]['p.col'],3)`, $\eta^2_p$ = `r round(post_e3[11,]['p.eta^2'],3)`, BF10 = 1.067); 
+i.e., the Bayesian Factor (BF10) was greater than 3 (Dienes, 2014; Jeffreys, 1961). Most importantly, the pupillary constriction to the gradation contrast of 0.46 constituted “anecdotal” evidence (BF10 = 1.067), more likely under the null hypotheses (H0).
+
+
+In behavioral data, the averaged probability of participants answering whether the presented stimulus appeared to be glowing or emitting light was fit with a psychometric function as shown in __Figure 5b__. The luminance contrast value at which the probability first reached 0.75 was chosen as the threshold. Following that, we divided the participants into two groups with high and low self-luminosity “sensitivity” based on the luminance contrast threshold using a 50% percentile: the high sensitivity group needed higher luminance contrast to perceive self-luminous surface in the glare illusion than the low sensitivity group. Crucially, we analyzed the pupil data for a gradation contrast of 0.46 based on the group as shown in Figure 5c. We found significant pupil constriction in the glare illusion for a gradation contrast of 0.46 in the low sensitivity group 
+($F$(1,`r round(sensi_low[12,]['df.col'],3)`) = `r round(sensi_low[11,]['f.col'],3)`, $p$ = `r round(sensi_low[11,]['p.col'],3)`, $\eta^2_p$ = `r round(sensi_low[11,]['p.eta^2'],3)`, BF10 = 3.699) but not in the high sensitivity group 
+($F$(1,`r round(sensi_high[12,]['df.col'],3)`) = `r round(sensi_high[11,]['f.col'],3)`, $p$ = `r round(sensi_high[11,]['p.col'],3)`, $\eta^2_p$ = `r round(sensi_high[11,]['p.eta^2'],3)`, BF10 = 0.332).

@@ -2751,7 +2751,10 @@ anova.output <- function(maxfact, exe.info, baseresults, mainresults, postresult
 	anovatab.title <- "<< ANOVA TABLE >>"
 	ano.info1 <- mainresults$ano.info1
 	ano.info2 <- "+p < .10, *p < .05, **p < .01, ***p < .001"
-	anovatab <- mainresults$anovatab
+	anovatab <<- mainresults$anovatab
+	forDrawingPost <<- postresults
+	forDrawingSigANOVA <<- mainresults$anovatab
+	
 	ano.header <- names(anovatab)
 	ano.header[1:7] <- c("Source", "SS", "df", "MS", "F-ratio", "p-value", "")
 	mse.row <- mainresults$mse.row
