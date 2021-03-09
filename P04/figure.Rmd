@@ -14,7 +14,7 @@ library(rjson)
 library(ggplot2)
 library(ggpubr)
 library(Cairo)
-
+library(quickpsy)
 if(exists(".anovakun.env")){
   sys.source("./data/anovakun_485.R", envir = .anovakun.env)
 }else{
@@ -32,6 +32,37 @@ for( i in seq(30)){
 
 # Function definition
 ```{r, message=FALSE, warning=FALSE}
+rejectOutlier <- function(ribbondata, vName){
+  
+  eval(parse(text=paste("dat_mean = tapply(ribbondata$",vName,
+                        ",list(ribbondata$sub),mean)", sep="")))
+  
+  eval(parse(text=paste("dat_sd = tapply(ribbondata$",vName,
+                        ",list(ribbondata$sub),sd)", sep="")))
+  
+  numOfSub = unique(ribbondata$sub)
+  
+  dat_mean = matrix(dat_mean,ncol = 1)
+  dat_mean = dat_mean[!is.na(dat_mean)]
+  dat_sd = matrix(dat_sd,ncol = 1)*3
+  dat_sd = dat_sd[!is.na(dat_sd)]
+  
+  t=NULL
+  for(i in 1:length(numOfSub)){
+    t = rbind(t,dim(ribbondata[ribbondata$sub == numOfSub[i],])[1])
+  }
+  
+  dat_mean = rep(dat_mean,times = t)
+  ribbondata$minsd = dat_mean - rep(dat_sd,times = t)
+  ribbondata$maxsd = dat_mean + rep(dat_sd,times = t)
+  
+  eval(parse(text=paste("ribbondata = ribbondata[ribbondata$",vName,
+                        "< ribbondata$maxsd,]", sep="")))
+  eval(parse(text=paste("ribbondata = ribbondata[ribbondata$",vName,
+                        "> ribbondata$minsd,]", sep="")))
+  return(ribbondata)
+}
+
 combineGraphs <- function(graphNum,p,layout){
   
   titleStr = c("'(a)'", "'(b)'", "'(c)'", "'(d)'", "'(e)'", "'(f)'", "'(g)'")
@@ -377,25 +408,7 @@ ind_data <- data.frame(
 eval(parse(text=paste("ind_data$",f1, "<- factor(ind_data$",f1, ",levels = c('",paste(g1,collapse="','"),"'))",sep="")))
 
 ind_data = ind_data[order(ind_data$Pattern,ind_data$sub),]
-
-dat_mean = tapply(ind_data$data_y,list(ind_data$sub,ind_data$Pattern),mean)
-dat_sd = tapply(ind_data$data_y,list(ind_data$sub,ind_data$Pattern),sd)
-dat_sdAll = sd(ind_data$data_y)
-
-dat_mean = matrix(dat_mean,ncol = 1)
-dat_sd = matrix(dat_sd,ncol = 1)
-dat_sd = rep(dat_sdAll,42)
-dat_mean = rep(dat_mean,times = rep(16,numOfSub*2))
-ind_data = cbind(ind_data,dat_mean)
-
-ind_data$minsd = ind_data$dat_mean - rep(dat_sd,times = rep(16,numOfSub*2))
-ind_data$maxsd = ind_data$dat_mean + rep(dat_sd,times = rep(16,numOfSub*2))
-
-dat_sd = rep(dat_sd,times = rep(16,numOfSub*2))
-ind_data = cbind(ind_data,dat_sd)
-
-ind_data = ind_data[ind_data$data_y < ind_data$maxsd,]
-ind_data = ind_data[ind_data$data_y > ind_data$minsd,]
+ind_data = rejectOutlier(ind_data,"data_y")
 
 data_e2 = aggregate( data_y ~ sub*Pattern, data = ind_data, FUN = "mean")
 
@@ -480,7 +493,8 @@ config = list(lim_x = c(sTime, eTime),
               label_x = "Time [sec]",
               label_y = "Averaged Pupil Changes [mm]",
               title = "",
-              grCol = c("#000000","#808080")
+              grCol = c("#000000","#808080"),
+              linetype = FALSE
 )
 
 p <- disp(data_e1,config,1,c("Pattern","Shape"))
@@ -507,34 +521,15 @@ print("-----------------------------------------")
 data_e1_anova = aggregate( data_y ~ sub*Pattern*Shape, data = data_e1, FUN = "mean")
 anovakun(data_e1_anova,"sAB",gg=T,long=T, peta=T)
 
-# ### bar plot
-data_e1_plot = aggregate( data_y ~ Pattern*Shape, data = data_e1, FUN = "mean")
-std_data = aggregate(data_y ~ Pattern*Shape, data = data_e1, FUN = "sd")
-std_data$data_y <- std_data$data_y / sqrt(numOfSub)
-
-data_e1_plot$SE_min <- data_e1_plot$data_y - std_data$data_y
-data_e1_plot$SE_max <- data_e1_plot$data_y + std_data$data_y
-
-data_e1_anova$cell   = rep(1:2, times = c(numOfSub,numOfSub))
-data_e1_plot$cell  = rep(1:2,2)
-
-p <- ggplot(data_e1_plot, aes(x = cell, y = data_y, group = Shape))+
-  geom_bar(aes(fill = Pattern),color="black", stat = "identity", size=0.3) +
-  scale_fill_manual(values = rep(c("black","white"),2)) +
-  geom_errorbar(aes(ymin = SE_min, ymax = SE_max),
-                width = 0.1, size=0.2, position = position_dodge(.9)) +
-  geom_hline(yintercept=0, colour="black", linetype="solid", size = 0.3) +
-  xlab("") + ylab(config$label_y)+
-  scale_x_continuous(breaks = 1:2, 
-                     labels = c(expression(paste("Radial")),
-                                expression(paste("Control"))))
-
+#### plot
+p <- dispLineGraph(data_e1_anova,config, c("Shape","Pattern"))
+# p <- drawSignificance(p,sigPair,0.12,0.015)
 p = setBarFigureStyle(p,SIZE_FONT)
 p <- p + facet_grid(. ~ Shape)
 
 p <- p + theme(
   axis.title.x = element_blank(),
-  legend.position = 'none',
+  axis.text.x = element_blank(),
   axis.ticks.x = element_blank(),
   axis.line.x = element_blank()
 )
@@ -596,6 +591,8 @@ p <- p + theme(
   axis.ticks.x = element_blank(),
   axis.line.x = element_blank()
 )
+eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
+countFigNum = countFigNum+1
 
 g = c("Kanizsa:radial","Kanizsa:control")
 
@@ -609,7 +606,37 @@ f = data.frame(
 colnames(f) <- c("subject",g)
 write.csv(f, "data/data_e2_bayesian.csv",row.names=FALSE)
 
+# coorelation -------------------------------------------------------------
+load('dataset_e1.rda')
+load('dataset_e2.rda')
+
+data_e1e2 = data_e1_anova[data_e1_anova$Shape == 'Kanizsa',]
+data_e1e2$data_y_e2 = data_e2$data_y
+data_e1e2 = data_e1e2[data_e1e2$sub != 5,]
+
+res = lm( data_y ~ data_y_e2 , data = data_e1e2)
+print(summary(res))
+cor.test(data_e1e2$data_y,data_e1e2$data_y_e2,method='spearman')
+
+p <- ggplot(data_e1e2,aes(x = data_y_e2, y = data_y)) +
+  geom_point(color='black',size=2)+
+  geom_abline(intercept = summary(res)$coefficients[1,"Estimate"],
+              slope = summary(res)$coefficients[2,"Estimate"],
+              color='gray',size=1)+
+  
+  coord_cartesian(xlim = c(-1, 9), ylim =  c(-0.2, 0.4)) +
+  xlab("Adjusted luminance [%]") + ylab(config$label_y)
+
+p = setFigureStyle(p,SIZE_FONT)
+p <- p + theme(
+  legend.position = c(0.9,0.9)
+)
+
+eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
+countFigNum = countFigNum+1
+
 # # # figure output -----------------------------------------------------------
+p = combineGraphs(seq(1,countFigNum-1),'p',NULL)
 plot(p)
 ```
 
@@ -621,7 +648,7 @@ CairoFonts(regular = "Times","Times")
 sTime = -0.2
 eTime = 4
 countFigNum = 1
-fontSize = 16
+fontSize = 20
 
 #### file loading 
 load("dataset_e3.rda")
@@ -644,7 +671,8 @@ config = list(lim_x = c(sTime, eTime),
               label_x = "Time [sec]",
               label_y = "Pupil Changes [mm]",
               title = "(a)",
-              grCol = rep(c("black", "gray16", "gray32", "gray48"),2)
+              grCol = rep(c("black", "gray16", "gray32", "gray48"),2),
+              linetype = FALSE
 )
 
 p <- disp(data_e1_ave,config,1,c("Pattern","Angle")) +
@@ -698,6 +726,7 @@ p <- p + theme(
 eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
 countFigNum = countFigNum+1
 
+# task ----------------------------------------------------------------
 g <- c("Glare:0.97", "Glare:0.84", "Glare:0.56", "Glare:0.46", "0",
        "Halo:0.97", "Halo:0.84", "Halo:0.56", "Halo:0.46")
 
@@ -712,51 +741,140 @@ colnames(f) <- c("subject",g)
 write.csv(f, "data/e3_bayesian.csv",row.names=FALSE)
 
 load("dataset_e3.rda")
-# data_task = aggregate( data_y ~ sub*Angle*Pattern, data = data_task, FUN = "mean")
-
-# data_e1_box$task = data_task$data_y
-# sd = aggregate( data_y ~ Angle*Pattern, data = data_e1_box, FUN = "sd") 
-# sd$data_y = sd$data_y / sqrt(numOfSub)
 
 sd_task = aggregate( data_y ~ Angle*Pattern, data = data_task, FUN = "sd")
 sd_task$data_y = sd_task$data_y / sqrt(numOfSub)
 
 data_task_ave = aggregate( data_y ~ Angle*Pattern, data = data_task, FUN = "mean")
-# data_e1_box_ave$task = aggregate( task ~ Angle*Pattern, data = data_e1_box, FUN = "mean")$task
-
-# data_e1_box_ave$SE_min_pupil = data_e1_box_ave$data_y - sd$data_y
-# data_e1_box_ave$SE_max_pupil = data_e1_box_ave$data_y + sd$data_y 
+data_task_anova = aggregate( data_y ~ sub*Angle*Pattern, data = data_task, FUN = "mean")
 data_task_ave$SE_min_task  = data_task_ave$data_y - sd_task$data_y
 data_task_ave$SE_max_task  = data_task_ave$data_y + sd_task$data_y
 
 g1 =  c(0.97,0.84,0.56,0.46,0,-0.46,-0.56,-0.84,-0.97)
 g0 = c(58,54,42,38,0,-38,-42,-54,-58)
+g2 =  c("a","b","c","d","e","a","b","c","d")
 
 for(i in 1:length(g0)){
   data_task[data_task$cell == g0[i],]$cell = g1[i]
 }
 
+allfit = data.frame()
+for(iSub in 1:max(data_task$sub)){
+  if(dim(data_task[data_task$sub == iSub,])[1] > 0){
+    tmp_fit = quickpsy(data_task[data_task$sub == iSub,], cell, data_y, n)
+    tmp_fit = data.frame(
+      sub = iSub,
+      x = tmp_fit$curves$x,
+      y = tmp_fit$curves$y
+    )
+    allfit = rbind(allfit,tmp_fit)
+  }
+}
+
+fNum = 0.75
+th = NULL
+for(iSub in 1:max(data_task$sub)){
+  if(dim(allfit[allfit$sub == iSub,])[1] > 0){
+    ind = which( abs(allfit[allfit$sub == iSub,]$y-fNum) == min(abs(allfit[allfit$sub == iSub,]$y-fNum))) 
+    th = rbind(th,allfit[allfit$sub == iSub,]$x[ind])
+  }
+}
+
+ind = order(th)
+mmName = unique(allfit$sub)
+data_e1_ave = aggregate( data_y ~ sub*Angle*Pattern*data_x, data = data_e1, FUN = "mean")
+data_e1_ave = data_e1_ave[data_e1_ave$data_x >= 0,]
+data_e1_ave = aggregate( data_y ~ sub*Angle*Pattern, data = data_e1_ave, FUN = "mean")
+data_e1_ave$group = ''
+allfit$group = ''
+for(iRoop in 1:length(ind)){ 
+  if(iRoop < length(ind)/2+1){
+    data_e1_ave[data_e1_ave$sub == mmName[ind[iRoop]],]$group = 'low'
+    allfit[allfit$sub == mmName[ind[iRoop]],]$group = 'low'
+  }else{
+    data_e1_ave[data_e1_ave$sub == mmName[ind[iRoop]],]$group = 'high'
+    allfit[allfit$sub == mmName[ind[iRoop]],]$group = 'high'
+  }
+}
+
 fit <- quickpsy(data_task, cell, data_y, n)
 data_task_ave$Angle = g1
-
+data_task_anova = data_task_anova[order(data_task_anova$sub),]
+data_task_anova$Angle = g1
+data_e1_ave = data_e1_ave[order(data_e1_ave$sub),]
+data_e1_ave$Angle = g2
+allfit$sub = subName[allfit$sub]
 p <- ggplot(data_task_ave,aes(x = Angle, y = data_y )) +
   geom_errorbar(aes(ymin = SE_min_task, ymax = SE_max_task),width = 0.001, size=0.2) +
-  # geom_errorbarh(aes(xmin= SE_min_pupil, xmax = SE_max_pupil),height = 0.01, size=0.2) +
   geom_point(aes(shape = Pattern,color = Angle,fill=Angle), size = 2)+
-  xlab('Averaged pupil change [mm]')+
+  geom_point(data=data_task_anova,aes(shape = Pattern,color = Angle,fill=Angle), size = 1,alpha=0.4)+
+  xlab('Luminance contrast')+
+  ylab('Probability')+
   geom_line(data = fit$curves, aes(x = x, y = y))+
-  # scale_fill_grey(start=0.8, end=0.2)
-  # scale_fill_gradient(low = "black", high = "black") +
-  scale_color_gradient(low = "black", high = "gray80") 
+  geom_line(data = allfit, aes(x = x, y = y,group=interaction(group,sub)),alpha=0.4)+
+  facet_grid(. ~ group)
+  # scale_color_gradient(low = "black", high = "gray80") 
 
 p = setBarFigureStyle(p,fontSize)
-width_fig=6
-height_fig=5
+eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
+countFigNum = countFigNum+1
 
-ggsave(file = paste(saveLoc,"/test.eps", sep = ""),
-       plot = p, dpi = 100,
-       width = width_fig, height = height_fig,family="Times")
+p <- dispLineGraph(data_e1_ave,config,c("Pattern","Angle","group"))+
+# ggplot(data_e1_ave,aes(x =Pattern,color = Angle,  y = data_y))+
+#   geom_boxplot(aes(linetype=Pattern))+
+#   scale_fill_manual(values = config$grCol)+
+#   scale_color_manual(values = config$grCol)+
+#   ylab(config$label_y)+
+  facet_grid(group ~ Angle)
+p <- p + theme(
+  legend.position = 'none'
+)
+p = setBarFigureStyle(p,fontSize)
+eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
+countFigNum = countFigNum+1
 
+data_e1_ave = data_e1_ave[,c(1,2,3,5,4)]
+data_e1_ave$sub = subName[data_e1_ave$sub]
+data_e1_ave = data_e1_ave[data_e1_ave$Pattern != 'Uniform',]
+# anovakun(data_e1_ave,"AsBC",gg=T,long=T, peta=T)
+
+t = data_e1_ave[data_e1_ave$group == 'low',]
+t$group = NULL
+anovakun(t,"sAB",gg=T,long=T, peta=T)
+
+numOfSub = length(unique(t$sub))
+f = data.frame(
+  sub = as.character(unique(t$sub)),
+  y = t(matrix(t$data_y,ncol = numOfSub))
+)
+g <- c("Glare:0.97", "Glare:0.84", "Glare:0.56", "Glare:0.46","Halo:0.97", "Halo:0.84", "Halo:0.56", "Halo:0.46")
+colnames(f) <- c("subject",g)
+write.csv(f, "data/e3_bayesian_low.csv",row.names=FALSE)
+
+t = data_e1_ave[data_e1_ave$group == 'high',]
+t$group = NULL
+anovakun(t,"sAB",gg=T,long=T, peta=T)
+numOfSub = length(unique(t$sub))
+f = data.frame(
+  sub = as.character(unique(t$sub)),
+  y = t(matrix(t$data_y,ncol = numOfSub))
+)
+colnames(f) <- c("subject",g)
+write.csv(f, "data/e3_bayesian_high.csv",row.names=FALSE)
+
+# width_fig=10
+# height_fig=6
+# CairoPDF("group",
+#          width=width_fig, height=height_fig)
+# print(p)
+# dev.off()
+# 
+# width_fig=6
+# height_fig=5
+# CairoPDF("psych_curve",
+#          width=width_fig, height=height_fig)
+# print(p3)
+# dev.off()
 
 ## figure output -----------------------------------------------------------
 p = combineGraphs(seq(1,countFigNum-1),'p',NULL)
