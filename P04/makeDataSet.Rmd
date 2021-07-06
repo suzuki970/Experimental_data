@@ -1,0 +1,131 @@
+---
+title: "makeDataSet"
+author: "Yuta Suzuki"
+date: "7/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# making dataset e1
+```{r, message=FALSE, warning=FALSE}
+
+timeLen = c(-0.2, 4)
+# the condition types are described as below
+f1 = "Pattern"
+f2 = "Shape"
+g1 <- c("Radial", "Radial", "Control", "Control")
+g2 <- c("Kanizsa", "No-triangle", "Kanizsa", "No-triangle")
+
+fNum = list(g1,g2)
+orderName = list(c("Radial", "Control"),c("Kanizsa", "No-triangle"))
+factors = list(f1,f2)
+
+#### making dataset for e1 #################################
+data=fromJSON(file="./data/data_e1.json")
+dat <- list(matrix(unlist(data$y),nrow=length(data$y),byrow=T),
+            matrix(unlist(data$gazeX),nrow=length(data$gazeX),byrow=T),
+            matrix(unlist(data$gazeY),nrow=length(data$gazeY),byrow=T),
+            t(unlist(data$sub)),t(unlist(data$condition)))
+names(dat) <- c('y','gazeX','gazeY', 'sub', 'condition')
+
+ind_data = makePupilDataset_mat2long(dat,c('condition','condition'),timeLen,fNum,orderName,factors)
+gazeX = t(matrix(t(dat$gazeX),nrow=1))
+ind_data = cbind(ind_data,gazeX)
+gazeY = t(matrix(t(dat$gazeY),nrow=1))
+ind_data = cbind(ind_data,gazeY)
+
+data_e1 = aggregate( . ~ sub*data_x*Pattern*Shape, data = ind_data, FUN = "mean")
+data_e1$gazeX = round(data_e1$gazeX, digits = 0)
+data_e1$gazeY = round(data_e1$gazeY, digits = 0)
+
+save(data_e1,file = "dataset_e1.rda")
+```
+
+# making dataset e2
+```{r, message=FALSE, warning=FALSE}
+
+# the condition types are described as below
+f1 = "Pattern"
+g1 <- c("Radial", "Control")
+
+#### making dataset for e1 #################################
+dat = fromJSON(file="./data/data_e2.json")
+lut = unlist(fromJSON(file="./data/data_disp.json"))
+
+numOfSub = length(unique(dat$sub))
+
+ind_data <- data.frame(
+  sub =  dat$sub,
+  data_y = ((lut[round(dat$taskRes,digit=0)]/86)*100)-100,
+  locs = dat$locs,
+  Pattern = g1[dat$condition]
+)
+eval(parse(text=paste("ind_data$",f1, "<- factor(ind_data$",f1, ",levels = c('",paste(g1,collapse="','"),"'))",sep="")))
+
+ind_data = ind_data[order(ind_data$Pattern,ind_data$sub),]
+ind_data = rejectOutlier(ind_data,"data_y")
+
+data_e2 = aggregate( data_y ~ sub*Pattern, data = ind_data, FUN = "mean")
+
+save(data_e2,file = "dataset_e2.rda")
+```
+
+# making dataset e3
+```{r, message=FALSE, warning=FALSE}
+
+sTime = -0.2
+eTime = 4
+
+#### the condition types are described as below
+f1 = "Angle"
+f2 = "Pattern"
+g1 <- c("0.97", "0.84", "0.56", "0.46", "0","0.46", "0.56", "0.84", "0.97")
+g2 <- rep(c("Glare","Uniform","Halo"),times=c(4,1,4))
+go1 = c("0.97", "0.84", "0.56", "0.46", "0")
+go2 = c("Glare","Uniform","Halo")
+
+#### making dataset for e1 #################################
+data=fromJSON(file="./data/data_e3.json")
+dat <- list(matrix(unlist(data$y),nrow=length(data$y),byrow=T),
+            t(unlist(data$sub)),t(unlist(data$condition)),t(unlist(data$taskRes)))
+names(dat) <- c('y', 'sub', 'condition', 'taskRes')
+
+numOfTrial = dim(dat$y)[1]
+numOfSub = length(unique(dat$sub))
+lengthOfTime = dim(dat$y)[2]
+timeLen = c(sTime,eTime)
+
+x = seq(sTime,eTime,length=lengthOfTime)
+
+ind_data = makePupilDataset_mat2long(dat,c('condition','condition'),timeLen,list(g1,g2),list(go1,go2),c(f1,f2))
+
+data_e1 = aggregate( data_y ~ sub*data_x*Angle*Pattern, data = ind_data, FUN = "mean")
+data_e1_all = ind_data
+
+xdur = c(58,54,42,38,0,-38,-42,-54,-58)
+xorder = rep(c(1,0,2),times=c(4,1,4))
+
+ind_data <- data.frame(
+  sub =  t(dat$sub),
+  data_y = t(dat$taskRes),
+  n = matrix(1,dim(dat$taskRes)[1]*dim(dat$taskRes)[2],1),
+  cell = xdur[dat$condition]
+)
+eval(parse(text=paste("ind_data$",f1,"=",
+                      "g1[dat$condition]",
+                      sep="")))
+ind_data$Angle <- factor(ind_data$Angle, levels = go1)
+
+eval(parse(text=paste("ind_data$",f2,"=",
+                      "g2[dat$condition]",
+                      sep="")))
+
+ind_data$Pattern <- factor(ind_data$Pattern, levels = c("Glare","Uniform","Halo"))
+data_task = ind_data
+
+save(data_e1,data_task,data_e1_all,file = "dataset_e3.rda")
+```
+

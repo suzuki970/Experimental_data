@@ -1,4 +1,23 @@
-# Article information
+---
+title: "Result notes"
+author: "Yuta Suzuki"
+date: "4/23/2021"
+output: 
+  slidy_presentation:
+    css: style.css
+     # reference_docx: results.docx
+     # word_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r child="readFunc.Rmd"}
+```
+
+## Article information
 
 Experimental data for "Pupillary constriction as an indicator of illusory luminosity perception in the glare illusion"
 
@@ -8,477 +27,15 @@ Yuta Suzuki, Takuya Fujii, Tetsuto Minami, Shigeki Nakauchi
 NTT Communication Science Laboratories, NTT Corporation, Atsugi 243-0198, Japan
 Tel: +81-046-240-3525 , E-mail: yuuta.suzuki.fc@hco.ntt.co.jp
 
-# Package instalation
-```{r, message=FALSE, warning=FALSE}
-library(rjson)
-library(ggplot2)
-library(ggpubr)
-library(Cairo)
-library(quickpsy)
-if(exists(".anovakun.env")){
-  sys.source("./data/anovakun_485.R", envir = .anovakun.env)
-}else{
-  .anovakun.env <- new.env()
-  sys.source("./data/anovakun_485.R", envir = .anovakun.env)
-  attach(.anovakun.env)
-}
-subName = NULL
-for( i in seq(30)){ 
-  if(i<10){subName = rbind(subName,paste("s0", i, sep = ""))} 
-  else{subName = rbind(subName,paste("s", i, sep = ""))}
-}
 
-```
-
-# Function definition
-```{r, message=FALSE, warning=FALSE}
-rejectOutlier <- function(ribbondata, vName){
-  
-  eval(parse(text=paste("dat_mean = tapply(ribbondata$",vName,
-                        ",list(ribbondata$sub),mean)", sep="")))
-  
-  eval(parse(text=paste("dat_sd = tapply(ribbondata$",vName,
-                        ",list(ribbondata$sub),sd)", sep="")))
-  
-  numOfSub = unique(ribbondata$sub)
-  
-  dat_mean = matrix(dat_mean,ncol = 1)
-  dat_mean = dat_mean[!is.na(dat_mean)]
-  dat_sd = matrix(dat_sd,ncol = 1)*3
-  dat_sd = dat_sd[!is.na(dat_sd)]
-  
-  t=NULL
-  for(i in 1:length(numOfSub)){
-    t = rbind(t,dim(ribbondata[ribbondata$sub == numOfSub[i],])[1])
-  }
-  
-  dat_mean = rep(dat_mean,times = t)
-  ribbondata$minsd = dat_mean - rep(dat_sd,times = t)
-  ribbondata$maxsd = dat_mean + rep(dat_sd,times = t)
-  
-  eval(parse(text=paste("ribbondata = ribbondata[ribbondata$",vName,
-                        "< ribbondata$maxsd,]", sep="")))
-  eval(parse(text=paste("ribbondata = ribbondata[ribbondata$",vName,
-                        "> ribbondata$minsd,]", sep="")))
-  return(ribbondata)
-}
-
-combineGraphs <- function(graphNum,p,layout){
-  
-  titleStr = c("'(a)'", "'(b)'", "'(c)'", "'(d)'", "'(e)'", "'(f)'", "'(g)'")
-  st = paste(p,graphNum, sep = "", collapse=",")
-  labelSt = titleStr[seq(1,length(graphNum))]
-  labelSt = paste(labelSt, collapse=",")
-  
-  ncolNum = round(length(graphNum) / 2 )
-  
-  if (is.numeric(layout)){
-    eval(parse(text=paste("p = grid.arrange(", 
-                          st ,",layout_matrix = layout)",
-                          sep="")))
-  }else{
-    eval(parse(text=paste("p = ggarrange(",
-                          st ,",labels = c(",
-                          labelSt,
-                          "),ncol = 2, nrow =", ncolNum, ")",
-                          sep="")))
-  }
-  return(p)
-}
-
-makePupilDataset_mat2long <- function(dat,nameOfVar, timeLen,fNum,orderName,factors){
-  
-  numOfTrial = dim(dat$y)[1]
-  numOfSub = length(unique(dat$sub))
-  lengthOfTime = dim(dat$y)[2]
-  
-  sTime = timeLen[1]
-  eTime = timeLen[2]
-  
-  x = seq(sTime,eTime,length=lengthOfTime)
-  
-  ind_data <- data.frame(
-    sub =  rep( dat$sub, times = rep( lengthOfTime, numOfTrial)),
-    data_y = t(matrix(t(dat$y),nrow=1)),
-    data_x = x
-  )
-  
-  if (length(nameOfVar)  == 1){
-    eval(parse(text=paste("ind_data$",factors[[1]],"=",
-                          "rep( fNum[[1]][dat$",nameOfVar[[1]],"], times = rep(lengthOfTime, numOfTrial))",
-                          sep="")))
-    
-    eval(parse(text=paste("ind_data$",factors[[1]],"<-",
-                          "factor(ind_data$", factors[[1]],",levels = orderName[[1]])", sep="")))
-    
-  }else{
-    eval(parse(text=paste("ind_data$",factors[[1]],"=",
-                          "rep( fNum[[1]][dat$", nameOfVar[[1]],"], times = rep(lengthOfTime, numOfTrial))",
-                          sep="")))
-    eval(parse(text=paste("ind_data$",factors[[2]],"=",
-                          "rep( fNum[[2]][dat$" , nameOfVar[[2]], "], times = rep(lengthOfTime, numOfTrial))",
-                          sep="")))
-    
-    eval(parse(text=paste("ind_data$",factors[[1]],"<-",
-                          "factor(ind_data$", factors[[1]],",levels = orderName[[1]])", sep="")))
-    eval(parse(text=paste("ind_data$",factors[[2]],"<-",
-                          "factor(ind_data$", factors[[2]],",levels = orderName[[2]])", sep="")))
-  }
-  
-  return(ind_data)
-}
-
-setFigureStyle <- function(gData,size_font=20){
-  gData <- gData +theme(
-    axis.title.x = element_text(size=size_font),
-    axis.title.y = element_text(size=size_font),
-    axis.line = element_line(colour = "black"),
-    axis.text.x = element_text(colour="black"),
-    axis.text.y = element_text(colour="black"),
-    panel.background = element_rect(fill = "transparent",color = 'black',size = 0.5),
-    panel.grid.major = element_line(colour = "gray", size = 0.05),
-    panel.grid.minor = element_line(colour = NA),
-    axis.ticks = element_line(colour = "black",size = 0.5),
-    text = element_text(size = size_font,family = "Times"),
-    # text = element_text(size = size_font,family = "Source Han Sans JP ExtraLight"),
-    # text = element_text(size = 16,family = "Helvetica"),
-    legend.title = element_text(size=(size_font/3)),
-    legend.text = element_text(size=(size_font/2)),
-    legend.key=element_rect(colour="transparent", fill=NA),
-    plot.background=element_rect(fill="transparent", colour=NA),
-    legend.background=element_rect(fill="transparent", colour=NA),
-    plot.title = element_text(size = size_font)
-    # axis.line = element_line(colour = 'black', size = 2)
-  )
-  return(gData)
-}
-
-setBarFigureStyle <- function(gData,size_font=20){
-  gData <- gData +theme(
-    axis.title.x = element_text(size=size_font),
-    axis.title.y = element_text(size=size_font),
-    panel.border = element_blank(), 
-    axis.line = element_line(),
-    axis.text.x = element_text(colour="black"),
-    axis.text.y = element_text(colour="black"),
-    panel.background = element_rect(fill = "transparent",size = 0.5),
-    # panel.grid.major = element_line(colour = NA),
-    panel.grid.major.y = element_line(colour = "gray", size = 0.05),
-    panel.grid.major.x = element_line(colour = NA),
-    panel.grid.minor = element_line(colour = NA),
-    axis.ticks = element_line(colour = "black",size = 0.5),
-    text = element_text(size = size_font,family = "Times"),
-    # text = element_text(size = size_font,family = "Source Han Sans JP ExtraLight"),
-    legend.title = element_text(size=(size_font/2)),
-    legend.text = element_text(size=(size_font/2)),
-    legend.key=element_rect(colour="transparent", fill=NA),
-    plot.background=element_rect(fill="transparent", colour=NA),
-    legend.background=element_rect(fill="transparent", colour=NA),
-    plot.title = element_text(size = size_font)
-  )
-  return(gData)
-}
-
-disp <- function(ribbondata,config,shadeFl,factors,numOfSub=0){
-  
-  if (shadeFl == 1) {
-    if(numOfSub == 0) {numOfSub = length(unique(ribbondata$sub))}
-    eval(parse(text=paste(
-      "data_std = aggregate( data_y ~ data_x * ",factors[1],"*",factors[2],
-      ", data = ribbondata, FUN = 'sd')",
-      sep=""))) 
-    eval(parse(text=paste(
-      "ribbondata = aggregate( data_y ~ data_x * ",factors[1],"*",factors[2],
-      ", data = ribbondata, FUN = 'mean')",
-      sep="")))
-    
-    data_std$data_y <- data_std$data_y / sqrt(numOfSub)
-    ribbondata$ymin <- ribbondata$data_y - data_std$data_y
-    ribbondata$ymax <- ribbondata$data_y + data_std$data_y
-    
-    eval(parse(text=paste(
-      "p <- ggplot(ribbondata,
-      aes(x = data_x, y = data_y, colour = ", factors[1],", group = ",factors[1],"))+",
-      # "annotation_raster(image, -Inf, Inf, -Inf, Inf) +",
-      "geom_ribbon(aes(ymin = ymin, ymax = ymax, fill = ",factors[2],", group = ",factors[1], "), color = 'gray', fill = 'gray', alpha = config$alpha, size = 0.05) +",
-      "geom_line()",
-      # "geom_line(aes(linetype=",factors[1],"))",
-      sep="")))
-    
-    if(!is.null(config$grCol)){
-      p <- p +
-        # scale_color_manual(values = config$grCol, name = factors[1])+
-        scale_fill_manual(values = config$grCol)+
-        scale_color_manual(values = config$grCol)
-    }
-    
-    p <- p +
-      ggtitle(config$title) +
-      xlab(config$label_x) + ylab(config$label_y) +
-      coord_cartesian(xlim = config$lim_x,ylim = config$lim_y) +
-      scale_x_continuous(expand = c(0, 0)) 
-    
-  }else{ 
-    
-    eval(parse(text=paste(
-      "p <- ggplot(ribbondata,aes(x = data_x, y = data_y, colour = ", factors[1],", group = ",factors[2],"))+", 
-      # "geom_line(aes(linetype = Type))",
-      "geom_line()",
-      sep="")))
-    
-    if(!is.null(config$grCol)){
-      p <- p +
-        scale_color_manual(values = config$grCol)
-    }
-    p <- p + 
-      geom_vline(xintercept=0, colour='black', linetype='longdash', size = 0.1) +
-      ggtitle(config$title) +
-      xlab(config$label_x) + ylab(config$label_y) +
-      coord_cartesian(xlim=config$lim_x, ylim=config$lim_y) +
-      scale_x_continuous(expand = c(0, 0))
-    # scale_y_continuous(expand = c(0, 0.1))
-    # scale_y_continuous(breaks = seq(config$lim_y[1],config$lim_y[2],config$stride),expand = c(0, 0))
-    
-  }
-  
-  p = setBarFigureStyle(p)
-  
-  return(p)
-}
-
-
-dispLineGraph <- function(ribbondata, config, factors,numOfSub = 0){
-  
-  if(numOfSub == 0) {numOfSub = length(unique(ribbondata$sub))}
-  
-  if(length(factors) == 1){ 
-    eval(parse(text=paste("std_data = aggregate( data_y ~ ",factors[1], ", data = ribbondata, FUN = 'sd')", sep="")))
-    eval(parse(text=paste("ribbondata = aggregate( data_y ~ ",factors[1], ", data = ribbondata, FUN = 'mean')", sep="")))
-  }
-  else if(length(factors) == 2){ 
-    eval(parse(text=paste("std_data = aggregate( data_y ~ ",factors[1],"*",factors[2], ", data = ribbondata, FUN = 'sd')", sep="")))
-    eval(parse(text=paste("ribbondata = aggregate( data_y ~ ",factors[1],"*",factors[2], ", data = ribbondata, FUN = 'mean')", sep="")))
-  }else{
-    eval(parse(text=paste("std_data = aggregate( data_y ~ ",factors[1],"*",factors[2],"*",factors[3], ", data = ribbondata, FUN = 'sd')", sep="")))
-    eval(parse(text=paste("ribbondata = aggregate( data_y ~ ",factors[1],"*",factors[2],"*",factors[3], ", data = ribbondata, FUN = 'mean')", sep="")))
-  }
-  
-  std_data$data_y = std_data$data_y / sqrt(numOfSub)
-  
-  ribbondata$SE_min <- ribbondata$data_y - std_data$data_y
-  ribbondata$SE_max <- ribbondata$data_y + std_data$data_y
-  # , color = ", factors[1],, color = ", factors[1],aes(shape = ", factors[2],"), 
-  if(length(factors) == 1){ 
-    eval(parse(text=paste("p <- ggplot(ribbondata,aes(x = ", factors[1],", y = data_y))", sep="")))
-    eval(parse(text=paste("p = p + geom_point(size = 3,color='black')", sep="")))
-  } else if(length(factors) == 2){
-    eval(parse(text=paste("p <- ggplot(ribbondata,aes(x = ", factors[1],", y = data_y, group = ",factors[2],"))", sep="")))
-    eval(parse(text=paste("p = p + geom_point(size = 3)", sep="")))
-  } else{
-    eval(parse(text=paste("p <- ggplot(ribbondata,aes(x = ", factors[1],", y = data_y, color = ", factors[1],", group = ",factors[2],"))", sep="")))
-    eval(parse(text=paste("p = p + geom_point(aes(shape = ", factors[2],"), size = 3)", sep="")))
-  }
-  
-  # eval(parse(text=paste("p = p + geom_point(aes(shape = ", factors[1],"), size = 3)", sep="")))
-  if(!is.null(config$grCol)){
-    p = p + scale_color_manual(values = config$grCol)
-  }
-  # geom_line() +
-  # scale_color_manual(values = config$grCol)+
-  # scale_color_viridis(discrete = TRUE)+
-  p = p +  
-    # geom_line()+
-    geom_errorbar(aes(ymin = SE_min, ymax = SE_max),size = 0.1, width = 0.1,color="black")+ 
-    xlab(config$label_x) + ylab(config$label_y) +
-    theme(
-      axis.ticks.x = element_blank(),
-      # axis.text.x = element_text(angle = 30, hjust = 1),
-      axis.line.x = element_blank()
-    )
-  
-  return(p)
-}
-
-dispBarGraph <- function(ribbondata, config, factors,numOfSub = 0){
-  
-  if(numOfSub == 0) {numOfSub = length(unique(ribbondata$sub))}
-  
-  if(length(factors) == 1){
-    eval(parse(text=paste("std_data = aggregate( data_y ~ ",factors[1], ", data = ribbondata, FUN = 'sd')", sep="")))
-    eval(parse(text=paste("ribbondata = aggregate( data_y ~ ",factors[1], ", data = ribbondata, FUN = 'mean')", sep="")))
-  }
-  else if(length(factors) == 2){
-    eval(parse(text=paste("std_data = aggregate( data_y ~ ",factors[1],"*",factors[2], ", data = ribbondata, FUN = 'sd')", sep="")))
-    eval(parse(text=paste("ribbondata = aggregate( data_y ~ ",factors[1],"*",factors[2], ", data = ribbondata, FUN = 'mean')", sep="")))
-  }else{
-    eval(parse(text=paste("std_data = aggregate( data_y ~ ",factors[1],"*",factors[2],"*",factors[3], ", data = ribbondata, FUN = 'sd')", sep="")))
-    eval(parse(text=paste("ribbondata = aggregate( data_y ~ ",factors[1],"*",factors[2],"*",factors[3], ", data = ribbondata, FUN = 'mean')", sep="")))
-  }
-  
-  std_data$data_y = std_data$data_y / sqrt(numOfSub)
-  
-  ribbondata$SE_min <- ribbondata$data_y - std_data$data_y
-  ribbondata$SE_max <- ribbondata$data_y + std_data$data_y
-  
-  if(length(factors) == 1){ 
-    eval(parse(text=paste("p <- ggplot(ribbondata,aes(x = ", factors[1],", y = data_y,color =",factors[1] ,",fill =",factors[1] ,"))", sep="")))
-  } else if(length(factors) == 2){
-    eval(parse(text=paste("p <- ggplot(ribbondata,aes(x = ", factors[1],", y = data_y, color=interaction(",factors[1],",",factors[2],"),fill = interaction(",factors[1],",",factors[2],")))", sep="")))
-  } else{
-    eval(parse(text=paste("p <- ggplot(ribbondata,aes(x = ", factors[1],", y = data_y, color = interaction(", factors[1],",",factors[2],",",factors[3],"),",
-                          "fill = interaction(", factors[1],",",factors[2],",",factors[3],")","))", sep="")))
-  }
-  
-  p <- p + 
-    geom_bar(stat = "identity", position = "dodge")+
-    geom_errorbar(aes(ymin = SE_min, ymax = SE_max),
-                  width = 0.3, size=0.2, position = position_dodge(.9)) +
-    geom_hline(yintercept=0, colour="black", linetype="solid", size = 0.5) +
-    xlab(config$label_x) + ylab(config$label_y) + 
-    theme(
-      axis.ticks.x = element_blank(),
-      # axis.text.x = element_text(angle = 30, hjust = 1),
-      axis.line.x = element_blank()
-    )
-  
-  if(!is.null(config$grCol)){
-    p=p+scale_fill_manual(values = config$grCol)+
-      scale_color_manual(values = config$gr_outline)
-  }
-  
-  return(p)
-}
-
-```
-
-# making dataset e1
-```{r, message=FALSE, warning=FALSE}
-
-timeLen = c(-0.2, 4)
-# the condition types are described as below
-f1 = "Pattern"
-f2 = "Shape"
-g1 <- c("Radial", "Radial", "Control", "Control")
-g2 <- c("Kanizsa", "No-triangle", "Kanizsa", "No-triangle")
-
-fNum = list(g1,g2)
-orderName = list(c("Radial", "Control"),c("Kanizsa", "No-triangle"))
-factors = list(f1,f2)
-
-#### making dataset for e1 #################################
-data=fromJSON(file="./data/data_e1.json")
-dat <- list(matrix(unlist(data$y),nrow=length(data$y),byrow=T),
-            matrix(unlist(data$gazeX),nrow=length(data$gazeX),byrow=T),
-            matrix(unlist(data$gazeY),nrow=length(data$gazeY),byrow=T),
-            t(unlist(data$sub)),t(unlist(data$condition)))
-names(dat) <- c('y','gazeX','gazeY', 'sub', 'condition')
-
-ind_data = makePupilDataset_mat2long(dat,c('condition','condition'),timeLen,fNum,orderName,factors)
-gazeX = t(matrix(t(dat$gazeX),nrow=1))
-ind_data = cbind(ind_data,gazeX)
-gazeY = t(matrix(t(dat$gazeY),nrow=1))
-ind_data = cbind(ind_data,gazeY)
-
-data_e1 = aggregate( . ~ sub*data_x*Pattern*Shape, data = ind_data, FUN = "mean")
-data_e1$gazeX = round(data_e1$gazeX, digits = 0)
-data_e1$gazeY = round(data_e1$gazeY, digits = 0)
-
-save(data_e1,file = "dataset_e1.rda")
-```
-
-# making dataset e2
-```{r, message=FALSE, warning=FALSE}
-
-# the condition types are described as below
-f1 = "Pattern"
-g1 <- c("Radial", "Control")
-
-#### making dataset for e1 #################################
-dat = fromJSON(file="./data/data_e2.json")
-lut = unlist(fromJSON(file="./data/data_disp.json"))
-
-numOfSub = length(unique(dat$sub))
-
-ind_data <- data.frame(
-  sub =  dat$sub,
-  data_y = ((lut[round(dat$taskRes,digit=0)]/86)*100)-100,
-  locs = dat$locs,
-  Pattern = g1[dat$condition]
-)
-eval(parse(text=paste("ind_data$",f1, "<- factor(ind_data$",f1, ",levels = c('",paste(g1,collapse="','"),"'))",sep="")))
-
-ind_data = ind_data[order(ind_data$Pattern,ind_data$sub),]
-ind_data = rejectOutlier(ind_data,"data_y")
-
-data_e2 = aggregate( data_y ~ sub*Pattern, data = ind_data, FUN = "mean")
-
-save(data_e2,file = "dataset_e2.rda")
-```
-
-# making dataset e3
-```{r, message=FALSE, warning=FALSE}
-
-sTime = -0.2
-eTime = 4
-
-#### the condition types are described as below
-f1 = "Angle"
-f2 = "Pattern"
-g1 <- c("0.97", "0.84", "0.56", "0.46", "0","0.46", "0.56", "0.84", "0.97")
-g2 <- rep(c("Glare","Uniform","Halo"),times=c(4,1,4))
-go1 = c("0.97", "0.84", "0.56", "0.46", "0")
-go2 = c("Glare","Uniform","Halo")
-
-#### making dataset for e1 #################################
-data=fromJSON(file="./data/data_e3.json")
-dat <- list(matrix(unlist(data$y),nrow=length(data$y),byrow=T),
-            t(unlist(data$sub)),t(unlist(data$condition)),t(unlist(data$taskRes)))
-names(dat) <- c('y', 'sub', 'condition', 'taskRes')
-
-numOfTrial = dim(dat$y)[1]
-numOfSub = length(unique(dat$sub))
-lengthOfTime = dim(dat$y)[2]
-timeLen = c(sTime,eTime)
-
-x = seq(sTime,eTime,length=lengthOfTime)
-
-ind_data = makePupilDataset_mat2long(dat,c('condition','condition'),timeLen,list(g1,g2),list(go1,go2),c(f1,f2))
-
-data_e1 = aggregate( data_y ~ sub*data_x*Angle*Pattern, data = ind_data, FUN = "mean")
-data_e1_all = ind_data
-
-xdur = c(58,54,42,38,0,-38,-42,-54,-58)
-xorder = rep(c(1,0,2),times=c(4,1,4))
-
-ind_data <- data.frame(
-  sub =  t(dat$sub),
-  data_y = t(dat$taskRes),
-  n = matrix(1,dim(dat$taskRes)[1]*dim(dat$taskRes)[2],1),
-  cell = xdur[dat$condition]
-)
-eval(parse(text=paste("ind_data$",f1,"=",
-                      "g1[dat$condition]",
-                      sep="")))
-ind_data$Angle <- factor(ind_data$Angle, levels = go1)
-
-eval(parse(text=paste("ind_data$",f2,"=",
-                      "g2[dat$condition]",
-                      sep="")))
-
-ind_data$Pattern <- factor(ind_data$Pattern, levels = c("Glare","Uniform","Halo"))
-data_task = ind_data
-
-save(data_e1,data_task,data_e1_all,file = "dataset_e3.rda")
-```
-
-# Figure 3ab
-```{r, message=FALSE, warning=FALSE}
+## Figure 3ab
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
 
 countFigNum = 1
 SIZE_FONT=20
 
 #### file loading 
-load("dataset_e1.rda")
+load("data/dataset_e1.rda")
 numOfSub = length(unique(data_e1$sub))
 sTime = -0.2
 eTime = max(data_e1$data_x)
@@ -501,7 +58,7 @@ p <- disp(data_e1,config,1,c("Pattern","Shape"))
 p <- p + 
   facet_grid(. ~ Shape)
 
-p = setFigureStyle(p,SIZE_FONT)
+p = setFigureStyle(p)
 
 p <- p + theme(
   legend.position = c(0.9,0.2)
@@ -522,9 +79,9 @@ data_e1_anova = aggregate( data_y ~ sub*Pattern*Shape, data = data_e1, FUN = "me
 anovakun(data_e1_anova,"sAB",gg=T,long=T, peta=T)
 
 #### plot
-p <- dispLineGraph(data_e1_anova,config, c("Shape","Pattern"))
+p <- dispLineGraph(data_e1_anova,config, c("Pattern","Shape"))
 # p <- drawSignificance(p,sigPair,0.12,0.015)
-p = setBarFigureStyle(p,SIZE_FONT)
+p = setBarFigureStyle(p)
 p <- p + facet_grid(. ~ Shape)
 
 p <- p + theme(
@@ -549,19 +106,21 @@ f = data.frame(
 colnames(f) <- c("subject",g)
 write.csv(f, "data/data_bayesian.csv",row.names=FALSE)
 
+```
+```{r, message=FALSE, warning=FALSE, echo=FALSE, fig.height=4, fig.width=10}
 # # # figure output -----------------------------------------------------------
 p = combineGraphs(seq(1,countFigNum-1),'p',NULL)
 plot(p)
 ```
 
-# Figure 3d
-```{r, message=FALSE, warning=FALSE}
+## Figure 3d
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
 
 countFigNum = 1
 SIZE_FONT=20
 
 #### file loading 
-load("dataset_e2.rda")
+load("data/dataset_e2.rda")
 numOfSub = length(unique(data_e2$sub))
 
 t.test(data_e2[data_e2$Pattern == 'Radial',]$data_y, mu=0)
@@ -583,7 +142,7 @@ config <- list(lim_x = c(0.5,7.5),
 p <- dispBarGraph(data_e2,config,c("Pattern"))+
   scale_y_continuous(breaks = seq(0,5),expand = c(0, 0.5))
 
-p = setBarFigureStyle(p,SIZE_FONT)
+p = setBarFigureStyle(p)
 
 p <- p + theme(
   axis.title.x = element_blank(),
@@ -607,8 +166,8 @@ colnames(f) <- c("subject",g)
 write.csv(f, "data/data_e2_bayesian.csv",row.names=FALSE)
 
 # coorelation -------------------------------------------------------------
-load('dataset_e1.rda')
-load('dataset_e2.rda')
+load('data/dataset_e1.rda')
+load('data/dataset_e2.rda')
 
 data_e1e2 = data_e1_anova[data_e1_anova$Shape == 'Kanizsa',]
 data_e1e2$data_y_e2 = data_e2$data_y
@@ -627,7 +186,7 @@ p <- ggplot(data_e1e2,aes(x = data_y_e2, y = data_y)) +
   coord_cartesian(xlim = c(-1, 9), ylim =  c(-0.2, 0.4)) +
   xlab("Adjusted luminance [%]") + ylab(config$label_y)
 
-p = setFigureStyle(p,SIZE_FONT)
+p = setFigureStyle(p)
 p <- p + theme(
   legend.position = c(0.9,0.9)
 )
@@ -635,13 +194,15 @@ p <- p + theme(
 eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
 countFigNum = countFigNum+1
 
+```
+```{r, message=FALSE, warning=FALSE, echo=FALSE, fig.height=4, fig.width=10}
 # # # figure output -----------------------------------------------------------
 p = combineGraphs(seq(1,countFigNum-1),'p',NULL)
 plot(p)
 ```
 
-# Figure 4
-```{r, message=FALSE, warning=FALSE}
+## Figure 4
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
 
 CairoFonts(regular = "Times","Times")
 
@@ -651,7 +212,7 @@ countFigNum = 1
 fontSize = 20
 
 #### file loading 
-load("dataset_e3.rda")
+load("data/dataset_e3.rda")
 numOfSub = length(unique(data_e1$sub))
 data_e1$sub = subName[data_e1$sub]
 
@@ -717,7 +278,7 @@ p <- ggplot(data_e1_box,aes(x =Pattern,color =Angle,  y = data_y))+
   ylab(config$label_y)+
   facet_grid(. ~ Angle)
 
-p = setBarFigureStyle(p,fontSize)
+p = setBarFigureStyle(p)
 
 p <- p + theme(
   legend.position = 'none'
@@ -740,7 +301,7 @@ f = data.frame(
 colnames(f) <- c("subject",g)
 write.csv(f, "data/e3_bayesian.csv",row.names=FALSE)
 
-load("dataset_e3.rda")
+load("data/dataset_e3.rda")
 
 sd_task = aggregate( data_y ~ Angle*Pattern, data = data_task, FUN = "sd")
 sd_task$data_y = sd_task$data_y / sqrt(numOfSub)
@@ -815,7 +376,7 @@ p <- ggplot(data_task_ave,aes(x = Angle, y = data_y )) +
   facet_grid(. ~ group)
   # scale_color_gradient(low = "black", high = "gray80") 
 
-p = setBarFigureStyle(p,fontSize)
+p = setBarFigureStyle(p)
 eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
 countFigNum = countFigNum+1
 
@@ -829,7 +390,7 @@ p <- dispLineGraph(data_e1_ave,config,c("Pattern","Angle","group"))+
 p <- p + theme(
   legend.position = 'none'
 )
-p = setBarFigureStyle(p,fontSize)
+p = setBarFigureStyle(p)
 eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
 countFigNum = countFigNum+1
 
@@ -875,7 +436,9 @@ write.csv(f, "data/e3_bayesian_high.csv",row.names=FALSE)
 #          width=width_fig, height=height_fig)
 # print(p3)
 # dev.off()
+```
 
+```{r, message=FALSE, warning=FALSE, echo=FALSE, fig.height=10, fig.width=10}
 ## figure output -----------------------------------------------------------
 p = combineGraphs(seq(1,countFigNum-1),'p',NULL)
 plot(p)
