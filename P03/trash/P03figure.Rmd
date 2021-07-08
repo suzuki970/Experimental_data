@@ -1,0 +1,783 @@
+<<<<<<< HEAD
+---
+title: "Result notes"
+author: "Yuta Suzuki"
+date: "4/23/2021"
+output: 
+  slidy_presentation:
+    css: style.css
+     # reference_docx: results.docx
+     # word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r child="readFunc.Rmd"}
+```
+
+## Article information
+=======
+# Article information
+>>>>>>> origin/master
+
+Experimental data for "Colorful glares Effects of colors on brightness illusions measured with pupillometry"
+
+Yuta Suzuki, Bruno Laeng, Tetsuto Minami, Shigeki Nakauchi
+
+*Corresponding author: Yuta Suzuki
+Department of Computer Science and Engineering, Toyohashi University of Technology, 1-1 Hibarigaoka Tempaku, Toyohashi, Aichi 441-8580, Japan
+E-mail address: suzuki14@vpac.cs.tut.ac.jp
+
+<<<<<<< HEAD
+## Figure 1
+```{r, echo=FALSE, out.width = '100%'}
+knitr::include_graphics("./data/fig1.png")
+```
+
+Fig. 1. Experimental stimuli. (a) Both the central glare illusion (above) and the peripheral halo stimuli (below) consisted of luminance gradient circles that either converged towards the pattern's center or turned towards its periphery. As a result, the central region of each glare pattern (top row) typically appears brighter than the corresponding central region of the halo stimulus (bottom row) despite both having the same photometric light intensity. Indeed, simply inspecting this figure should demonstrate that the perceived intensity of each pattern varies with the color of the inducers. (b) The homogeneous colors averaged the inducers of gradient pattern were used in Experiment 3.
+
+## Figure 2
+```{r, echo=FALSE, out.width = '100%'}
+knitr::include_graphics("./data/fig2.png")
+```
+
+Fig. 2. Experimental design of Experiments 1 and 2. (a) Experiment 1: Each trial consisted in the presentation of the central fixation point for 1000 ms, followed by a stimulus presentation for 4000 ms. Each trial was separated by an inter-stimulus interval (ISI) of 2000 ms. (b) Experiment 2: Participants clicked the mouse in the initial blank screen to continue to the stimulus presentation; subsequently the participant adjusted the luminance of the canter region of the reference stimulus using a “trackball”. Panel (b) illustrates the target stimuli in the blue Glare or Halo conditions. (For interpretation of the references to color in this figure legend, the reader is referred to the web version of this article.)
+
+## Figure 3
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+=======
+# Package instalation
+```{r, message=FALSE, warning=FALSE}
+library(rjson)
+library(ggplot2)
+library(ggpubr)
+library(Cairo)
+library(R.matlab)
+library(lme4)
+library(lmerTest)
+
+if(exists(".anovakun.env")){
+  sys.source("./data/anovakun_485.R", envir = .anovakun.env)
+}else{
+  .anovakun.env <- new.env()
+  sys.source("./data/anovakun_485.R", envir = .anovakun.env)
+  attach(.anovakun.env)
+}
+subName = NULL
+for( i in seq(30)){ 
+  if(i<10){subName = rbind(subName,paste("s0", i, sep = ""))} 
+  else{subName = rbind(subName,paste("s", i, sep = ""))}
+}
+
+```
+
+# Function definition
+```{r, message=FALSE, warning=FALSE}
+combineGraphs <- function(graphNum,p,layout){
+  
+  titleStr = c("'(a)'", "'(b)'", "'(c)'", "'(d)'", "'(e)'", "'(f)'", "'(g)'")
+  st = paste(p,graphNum, sep = "", collapse=",")
+  labelSt = titleStr[seq(1,length(graphNum))]
+  labelSt = paste(labelSt, collapse=",")
+  
+  ncolNum = round(length(graphNum) / 2 )
+  
+  if (is.numeric(layout)){
+    eval(parse(text=paste("p = grid.arrange(", 
+                          st ,",layout_matrix = layout)",
+                          sep="")))
+  }else{
+    eval(parse(text=paste("p = ggarrange(",
+                          st ,",labels = c(",
+                          labelSt,
+                          "),ncol = 2, nrow =", ncolNum, ")",
+                          sep="")))
+  }
+  return(p)
+}
+
+makePupilDataset_mat2long <- function(dat,nameOfVar, timeLen,fNum,orderName,factors){
+  
+  numOfTrial = dim(dat$y)[1]
+  numOfSub = length(unique(dat$sub))
+  lengthOfTime = dim(dat$y)[2]
+  
+  sTime = timeLen[1]
+  eTime = timeLen[2]
+  
+  x = seq(sTime,eTime,length=lengthOfTime)
+  
+  ind_data <- data.frame(
+    sub =  rep( dat$sub, times = rep( lengthOfTime, numOfTrial)),
+    data_y = t(matrix(t(dat$y),nrow=1)),
+    data_x = x
+  )
+  
+  if (length(nameOfVar)  == 1){
+    eval(parse(text=paste("ind_data$",factors[[1]],"=",
+                          "rep( fNum[[1]][dat$",nameOfVar[[1]],"], times = rep(lengthOfTime, numOfTrial))",
+                          sep="")))
+    
+    eval(parse(text=paste("ind_data$",factors[[1]],"<-",
+                          "factor(ind_data$", factors[[1]],",levels = orderName[[1]])", sep="")))
+    
+  }else{
+    eval(parse(text=paste("ind_data$",factors[[1]],"=",
+                          "rep( fNum[[1]][dat$", nameOfVar[[1]],"], times = rep(lengthOfTime, numOfTrial))",
+                          sep="")))
+    eval(parse(text=paste("ind_data$",factors[[2]],"=",
+                          "rep( fNum[[2]][dat$" , nameOfVar[[2]], "], times = rep(lengthOfTime, numOfTrial))",
+                          sep="")))
+    
+    eval(parse(text=paste("ind_data$",factors[[1]],"<-",
+                          "factor(ind_data$", factors[[1]],",levels = orderName[[1]])", sep="")))
+    eval(parse(text=paste("ind_data$",factors[[2]],"<-",
+                          "factor(ind_data$", factors[[2]],",levels = orderName[[2]])", sep="")))
+  }
+  
+  return(ind_data)
+}
+
+setFigureStyle <- function(gData,size_font=20){
+  gData <- gData +theme(
+    axis.title.x = element_text(size=size_font),
+    axis.title.y = element_text(size=size_font),
+    axis.line = element_line(colour = "black"),
+    axis.text.x = element_text(colour="black"),
+    axis.text.y = element_text(colour="black"),
+    panel.background = element_rect(fill = "transparent",color = 'black',size = 0.5),
+    panel.grid.major = element_line(colour = "gray", size = 0.05),
+    panel.grid.minor = element_line(colour = NA),
+    axis.ticks = element_line(colour = "black",size = 0.5),
+    text = element_text(size = size_font,family = "Times"),
+    # text = element_text(size = size_font,family = "Source Han Sans JP ExtraLight"),
+    # text = element_text(size = 16,family = "Helvetica"),
+    legend.title = element_text(size=(size_font/3)),
+    legend.text = element_text(size=(size_font/2)),
+    legend.key=element_rect(colour="transparent", fill=NA),
+    plot.background=element_rect(fill="transparent", colour=NA),
+    legend.background=element_rect(fill="transparent", colour=NA),
+    plot.title = element_text(size = size_font)
+    # axis.line = element_line(colour = 'black', size = 2)
+  )
+  return(gData)
+}
+
+setBarFigureStyle <- function(gData,size_font=20){
+  gData <- gData +theme(
+    axis.title.x = element_text(size=size_font),
+    axis.title.y = element_text(size=size_font),
+    panel.border = element_blank(), 
+    axis.line = element_line(),
+    axis.text.x = element_text(colour="black"),
+    axis.text.y = element_text(colour="black"),
+    panel.background = element_rect(fill = "transparent",size = 0.5),
+    # panel.grid.major = element_line(colour = NA),
+    panel.grid.major.y = element_line(colour = "gray", size = 0.05),
+    panel.grid.major.x = element_line(colour = NA),
+    panel.grid.minor = element_line(colour = NA),
+    axis.ticks = element_line(colour = "black",size = 0.5),
+    text = element_text(size = size_font,family = "Times"),
+    # text = element_text(size = size_font,family = "Source Han Sans JP ExtraLight"),
+    legend.title = element_text(size=(size_font/2)),
+    legend.text = element_text(size=(size_font/2)),
+    legend.key=element_rect(colour="transparent", fill=NA),
+    plot.background=element_rect(fill="transparent", colour=NA),
+    legend.background=element_rect(fill="transparent", colour=NA),
+    plot.title = element_text(size = size_font)
+    )
+  return(gData)
+}
+
+disp <- function(ribbondata,config,shadeFl,factors,numOfSub=0){
+  
+  if (shadeFl == 1) {
+    if(numOfSub == 0) {numOfSub = length(unique(ribbondata$sub))}
+    eval(parse(text=paste(
+      "data_std = aggregate( data_y ~ data_x * ",factors[1],"*",factors[2],
+      ", data = ribbondata, FUN = 'sd')",
+      sep=""))) 
+    eval(parse(text=paste(
+      "ribbondata = aggregate( data_y ~ data_x * ",factors[1],"*",factors[2],
+      ", data = ribbondata, FUN = 'mean')",
+      sep="")))
+    
+    data_std$data_y <- data_std$data_y / sqrt(numOfSub)
+    ribbondata$ymin <- ribbondata$data_y - data_std$data_y
+    ribbondata$ymax <- ribbondata$data_y + data_std$data_y
+    
+    eval(parse(text=paste(
+      "p <- ggplot(ribbondata,
+      aes(x = data_x, y = data_y, colour = ", factors[1],", group = ",factors[1],"))+",
+      # "annotation_raster(image, -Inf, Inf, -Inf, Inf) +",
+      "geom_ribbon(aes(ymin = ymin, ymax = ymax, fill = ",factors[2],", group = ",factors[1], "), color = 'gray', fill = 'gray', alpha = config$alpha, size = 0.05) +",
+      "geom_line()",
+      # "geom_line(aes(linetype=",factors[1],"))",
+      sep="")))
+    
+    if(!is.null(config$grCol)){
+      p <- p +
+        # scale_color_manual(values = config$grCol, name = factors[1])+
+        scale_fill_manual(values = config$grCol)+
+        scale_color_manual(values = config$grCol)
+    }
+    
+    p <- p +
+      ggtitle(config$title) +
+      xlab(config$label_x) + ylab(config$label_y) +
+      coord_cartesian(xlim = config$lim_x,ylim = config$lim_y) +
+      scale_x_continuous(expand = c(0, 0)) 
+    
+  }else{ 
+    
+    eval(parse(text=paste(
+      "p <- ggplot(ribbondata,aes(x = data_x, y = data_y, colour = ", factors[1],", group = ",factors[2],"))+", 
+      # "geom_line(aes(linetype = Type))",
+      "geom_line()",
+      sep="")))
+    
+    if(!is.null(config$grCol)){
+      p <- p +
+        scale_color_manual(values = config$grCol)
+    }
+    p <- p + 
+      geom_vline(xintercept=0, colour='black', linetype='longdash', size = 0.1) +
+      ggtitle(config$title) +
+      xlab(config$label_x) + ylab(config$label_y) +
+      coord_cartesian(xlim=config$lim_x, ylim=config$lim_y) +
+      scale_x_continuous(expand = c(0, 0))
+    # scale_y_continuous(expand = c(0, 0.1))
+    # scale_y_continuous(breaks = seq(config$lim_y[1],config$lim_y[2],config$stride),expand = c(0, 0))
+    
+  }
+  
+  p = setBarFigureStyle(p)
+  
+  return(p)
+}
+
+
+dispLineGraph <- function(ribbondata, config, factors,numOfSub = 0){
+  
+  if(numOfSub == 0) {numOfSub = length(unique(ribbondata$sub))}
+  
+  if(length(factors) == 1){ 
+    eval(parse(text=paste("std_data = aggregate( data_y ~ ",factors[1], ", data = ribbondata, FUN = 'sd')", sep="")))
+    eval(parse(text=paste("ribbondata = aggregate( data_y ~ ",factors[1], ", data = ribbondata, FUN = 'mean')", sep="")))
+  }
+  else if(length(factors) == 2){ 
+    eval(parse(text=paste("std_data = aggregate( data_y ~ ",factors[1],"*",factors[2], ", data = ribbondata, FUN = 'sd')", sep="")))
+    eval(parse(text=paste("ribbondata = aggregate( data_y ~ ",factors[1],"*",factors[2], ", data = ribbondata, FUN = 'mean')", sep="")))
+  }else{
+    eval(parse(text=paste("std_data = aggregate( data_y ~ ",factors[1],"*",factors[2],"*",factors[3], ", data = ribbondata, FUN = 'sd')", sep="")))
+    eval(parse(text=paste("ribbondata = aggregate( data_y ~ ",factors[1],"*",factors[2],"*",factors[3], ", data = ribbondata, FUN = 'mean')", sep="")))
+  }
+  
+  std_data$data_y = std_data$data_y / sqrt(numOfSub)
+  
+  ribbondata$SE_min <- ribbondata$data_y - std_data$data_y
+  ribbondata$SE_max <- ribbondata$data_y + std_data$data_y
+  # , color = ", factors[1],, color = ", factors[1],aes(shape = ", factors[2],"), 
+  if(length(factors) == 1){ 
+    eval(parse(text=paste("p <- ggplot(ribbondata,aes(x = ", factors[1],", y = data_y))", sep="")))
+    eval(parse(text=paste("p = p + geom_point(size = 3,color='black')", sep="")))
+  } else if(length(factors) == 2){
+    eval(parse(text=paste("p <- ggplot(ribbondata,aes(x = ", factors[1],", y = data_y, group = ",factors[2],"))", sep="")))
+    eval(parse(text=paste("p = p + geom_point(size = 3)", sep="")))
+  } else{
+    eval(parse(text=paste("p <- ggplot(ribbondata,aes(x = ", factors[1],", y = data_y, color = ", factors[1],", group = ",factors[2],"))", sep="")))
+    eval(parse(text=paste("p = p + geom_point(aes(shape = ", factors[2],"), size = 3)", sep="")))
+  }
+  
+  # eval(parse(text=paste("p = p + geom_point(aes(shape = ", factors[1],"), size = 3)", sep="")))
+  if(!is.null(config$grCol)){
+    p = p + scale_color_manual(values = config$grCol)
+  }
+  # geom_line() +
+  # scale_color_manual(values = config$grCol)+
+  # scale_color_viridis(discrete = TRUE)+
+  p = p +  
+    # geom_line()+
+    geom_errorbar(aes(ymin = SE_min, ymax = SE_max),size = 0.1, width = 0.1,color="black")+ 
+    xlab(config$label_x) + ylab(config$label_y) +
+    theme(
+      axis.ticks.x = element_blank(),
+      # axis.text.x = element_text(angle = 30, hjust = 1),
+      axis.line.x = element_blank()
+    )
+  
+  return(p)
+}
+
+dispBarGraph <- function(ribbondata, config, factors,numOfSub = 0){
+  
+  if(numOfSub == 0) {numOfSub = length(unique(ribbondata$sub))}
+  
+  if(length(factors) == 1){
+    eval(parse(text=paste("std_data = aggregate( data_y ~ ",factors[1], ", data = ribbondata, FUN = 'sd')", sep="")))
+    eval(parse(text=paste("ribbondata = aggregate( data_y ~ ",factors[1], ", data = ribbondata, FUN = 'mean')", sep="")))
+  }
+  else if(length(factors) == 2){
+    eval(parse(text=paste("std_data = aggregate( data_y ~ ",factors[1],"*",factors[2], ", data = ribbondata, FUN = 'sd')", sep="")))
+    eval(parse(text=paste("ribbondata = aggregate( data_y ~ ",factors[1],"*",factors[2], ", data = ribbondata, FUN = 'mean')", sep="")))
+  }else{
+    eval(parse(text=paste("std_data = aggregate( data_y ~ ",factors[1],"*",factors[2],"*",factors[3], ", data = ribbondata, FUN = 'sd')", sep="")))
+    eval(parse(text=paste("ribbondata = aggregate( data_y ~ ",factors[1],"*",factors[2],"*",factors[3], ", data = ribbondata, FUN = 'mean')", sep="")))
+  }
+  
+  std_data$data_y = std_data$data_y / sqrt(numOfSub)
+  
+  ribbondata$SE_min <- ribbondata$data_y - std_data$data_y
+  ribbondata$SE_max <- ribbondata$data_y + std_data$data_y
+  
+  if(length(factors) == 1){ 
+    eval(parse(text=paste("p <- ggplot(ribbondata,aes(x = ", factors[1],", y = data_y,color =",factors[1] ,",fill =",factors[1] ,"))", sep="")))
+  } else if(length(factors) == 2){
+    eval(parse(text=paste("p <- ggplot(ribbondata,aes(x = ", factors[1],", y = data_y, color=interaction(",factors[1],",",factors[2],"),fill = interaction(",factors[1],",",factors[2],")))", sep="")))
+  } else{
+    eval(parse(text=paste("p <- ggplot(ribbondata,aes(x = ", factors[1],", y = data_y, color = interaction(", factors[1],",",factors[2],",",factors[3],"),",
+                          "fill = interaction(", factors[1],",",factors[2],",",factors[3],")","))", sep="")))
+  }
+  
+  p <- p + 
+    geom_bar(stat = "identity", position = "dodge")+
+    geom_errorbar(aes(ymin = SE_min, ymax = SE_max),
+                  width = 0.3, size=0.2, position = position_dodge(.9)) +
+    geom_hline(yintercept=0, colour="black", linetype="solid", size = 0.5) +
+    xlab(config$label_x) + ylab(config$label_y) + 
+    theme(
+      axis.ticks.x = element_blank(),
+      # axis.text.x = element_text(angle = 30, hjust = 1),
+      axis.line.x = element_blank()
+    )
+  
+  if(!is.null(config$grCol)){
+    p=p+scale_fill_manual(values = config$grCol)+
+      scale_color_manual(values = config$gr_outline)
+  }
+  
+  return(p)
+}
+
+```
+
+# making dataset e1
+```{r, message=FALSE, warning=FALSE}
+sTime = -0.2
+eTime = 4
+
+gColor = rep(c("Black","Blue","Cyan","Green","Yellow","Red","Magenta"),2)
+gPattern = c("Glare","Halo")
+
+# #### making dataset for e1 #################################
+
+dat <- readMat("./data/data1.mat")
+numOfTrial = dim(dat$y)[1]
+numOfSub = length(unique(dat$sub))
+lengthOfTime = dim(dat$y)[2]
+
+x = seq(sTime,eTime,length=lengthOfTime)
+sh = rep(c(1,2),times=c(7,7))
+
+ind_data <- data.frame(
+  sub =  rep( dat$sub, times = rep( lengthOfTime, numOfTrial)),
+  data_y = t(matrix(t(dat$y),nrow=1)),
+  data_x = rep( x, numOfTrial),
+  Color = rep( dat$condition, times = rep(lengthOfTime, numOfTrial)),
+  Pattern = rep( sh[dat$condition], times = rep(lengthOfTime, numOfTrial))
+ )
+ind_data$Color = gColor[ind_data$Color]
+ind_data$Color <- factor(ind_data$Color, levels = c("Black","Blue","Cyan","Green","Yellow","Red","Magenta"))
+
+ind_data$Pattern = gPattern[ind_data$Pattern]
+
+data_e1 = aggregate( data_y ~ sub*Color*Pattern*data_x, data = ind_data, FUN = "mean")
+
+dat_mean = unlist(tapply(data_e1$data_y,list(data_e1$sub,data_e1$Color,data_e1$Pattern),min))
+dat_mean = matrix(dat_mean,ncol = 1)
+
+save(data_e1,file = "dataset_e1.rda")
+```
+
+# making dataset e2
+```{r, message=FALSE, warning=FALSE}
+# #### making dataset for e2 #################################
+dat = readMat("./data/data_e2.mat")
+
+numOfTrial = dim(dat$datRes)[1]
+numOfSub = length(unique(dat$sub))
+sType = rep(1:2,times=c(7,7))
+ind_data = data.frame(
+  sub =  dat$sub,
+  data_y = dat$datRes,
+  Color = dat$condition,
+  Pattern = sType[dat$condition]
+ )
+
+ind_data$Color = gColor[ind_data$Color]
+ind_data$Color = factor(ind_data$Color, levels = c("Black","Blue","Cyan","Green","Yellow","Red","Magenta"))
+
+ind_data$Pattern = gPattern[ind_data$Pattern]
+ind_data$Pattern = factor(ind_data$Pattern, levels = gPattern)
+
+ind_data = ind_data[order(ind_data$sub, ind_data$Color, ind_data$Pattern),]
+dat_mean = matrix(tapply(ind_data$data_y,list(ind_data$Pattern,ind_data$Color,ind_data$sub),mean),ncol = 1)
+dat_sd = matrix(tapply(ind_data$data_y,list(ind_data$Pattern,ind_data$Color,ind_data$sub),sd),ncol = 1)
+
+dat_sd = dat_sd*3
+ind_data$dat_mean = rep(dat_mean,times = rep(8,14*numOfSub))
+ind_data$minsd = ind_data$dat_mean - rep(dat_sd,times = rep(8,14*numOfSub))
+ind_data$maxsd = ind_data$dat_mean + rep(dat_sd,times = rep(8,14*numOfSub))
+
+ind_data = ind_data[ind_data$data_y < ind_data$maxsd,]
+ind_data = ind_data[ind_data$data_y > ind_data$minsd,]
+
+data_e2 = aggregate( data_y ~ sub*Color*Pattern, data = ind_data, FUN = "mean")
+
+cri = data_e2[ data_e2$Color == "Black" & data_e2$Pattern == "Halo",]
+cri = rep(cri$data_y,14)
+data_e2$data_afy = mapply(function(x,y){return (x/y)},data_e2$data_y,cri)
+
+data_e2$data_afy = data_e2$data_afy*100 -100
+
+save(data_e2,file = "dataset_e2.rda")
+```
+
+
+# making dataset e3
+```{r, message=FALSE, warning=FALSE}
+#### making dataset for e3 #################################
+dat <- readMat("./data/data_e3.mat")
+
+numOfTrial = dim(dat$y)[1]
+numOfSub = length(unique(dat$sub))
+lengthOfTime = dim(dat$y)[2]
+
+x = seq(sTime,eTime,length=lengthOfTime)
+
+ind_data <- data.frame(
+  sub =  rep( dat$sub, times = rep( lengthOfTime, numOfTrial)),
+  data_y = t(matrix(t(dat$y),nrow=1)),
+  data_x = rep( x, numOfTrial),
+  Color = rep( gColor[dat$condition], times = rep(lengthOfTime, numOfTrial))
+    )
+ind_data$Pattern = "Homogeneous"
+
+data_e3 = aggregate( data_y ~ sub*Color*Pattern*data_x, data = ind_data, FUN = "mean")
+g <- c("Black","Blue","Cyan","Green","Yellow","Red","Magenta")
+data_e3$Color <- factor(data_e3$Color, levels = g)
+
+save(data_e3,file = "dataset_e3.rda")
+```
+
+# Figure 3ab
+```{r, message=FALSE, warning=FALSE}
+>>>>>>> origin/master
+
+sTime = -0.2
+eTime = 4
+countFigNum = 1
+
+#### file loading 
+load("dataset_e1.rda")
+
+numOfSub = length(unique(data_e1$sub))
+subName = NULL
+for( i in seq(max(data_e1$sub))){ subName = rbind(subName,paste("s", i, sep = ""))}
+data_e1$sub = subName[data_e1$sub]
+
+### show graph
+data_e1_ave = aggregate( data_y ~ Color*Pattern*data_x, data = data_e1, FUN = "mean")
+
+config <- list(lim_x = c(sTime, eTime),
+               lim_y = c(min(data_e1_ave$data_y), max(data_e1_ave$data_y)),
+               alpha = 0.1,
+               stride = 0.1,
+               label_x = "Time [sec]",
+               label_y = "Pupil Changes [mm]",
+<<<<<<< HEAD
+               title = "",
+=======
+               title = "pupil",
+>>>>>>> origin/master
+               grCol = rep(c("Black","Blue","Cyan","Green","Yellow","Red","Magenta"),2)
+)
+
+p <- disp(data_e1_ave,config,0,c("Color","Color"))
+p <- p + facet_grid(. ~ Pattern)
+
+p = setFigureStyle(p)
+
+p <- p + theme(
+  legend.position = 'none'
+)
+eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
+countFigNum = countFigNum+1
+
+## mean during time from 0sec to 4sec
+data_e1_anova = aggregate( data_y ~ sub*Color*Pattern, data = data_e1, FUN = "mean")
+
+#### ANOVA
+anovakun(data_e1_anova,"sAB",gg=T,long=T, peta=T)
+# output2wayANOVA(forDrawingSigANOVA)
+# sigPair = makeSigPair(forDrawingPost)
+
+## mean during time from 0sec to 4sec
+data_e1_plot = aggregate( data_y ~ Color*Pattern, data = data_e1_anova, FUN = "mean")
+std_data = aggregate(data_y ~ Color*Pattern, data=data_e1_anova, FUN = "sd") 
+std_data$data_y <- std_data$data_y / sqrt(numOfSub)
+
+std_data$SE_min <- data_e1_plot$data_y - std_data$data_y
+std_data$SE_max <- data_e1_plot$data_y + std_data$data_y
+
+### bar plot
+config <- list(lim_x = c(0.5,7.5),
+               lim_y = c(min(std_data$SE_min), max(std_data$SE_max)),
+               stride =c(-0.3,-0.2,-0.1,-0.0,0.1,0.2),
+               label_x = "Condition",
+               label_y = "Averaged Pupil Changes [mm]",
+               title="average",
+               gr = c("Black","Blue","Cyan","Green","Yellow","Red","Magenta",
+                      "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF"),
+<<<<<<< HEAD
+               gr_outline = rep(c("Black","Blue","Cyan","Green","Yellow","Red","Magenta"),2)
+=======
+               gr_outline = rep(c("Black","Blue","Cyan","Green","Yellow","Red","Magenta"),times=rep(2,7))
+>>>>>>> origin/master
+)
+
+p <- ggplot(data_e1_plot, aes(x = Color, y = data_y, fill = interaction(Color,Pattern)))+
+  geom_bar(stat = "identity", position = "dodge", colour = config$gr_outline)+
+  # scale_fill_manual(values = c("blue","white")) +
+  scale_fill_manual(values = config$gr) +
+  
+  geom_errorbar(data = std_data, aes(ymin = SE_min, ymax = SE_max),
+                width = 0.3, size=0.2, position = position_dodge(.9) ) +
+  
+  geom_hline(yintercept=0, colour="black", linetype="solid", size = 0.5) +
+  # ylim(config$lim_y) + 
+  xlab(config$label_x) + ylab(config$label_y)
+
+# p <- drawSignificance(p,sigPair,0.12,0.015)
+
+p = setBarFigureStyle(p)
+p <- p + theme(
+  legend.position = 'none',
+  axis.ticks.x = element_blank(),
+  axis.text.x = element_text(angle = 30, hjust = 1),
+  axis.line.x = element_blank()
+)
+eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
+countFigNum = countFigNum+1
+<<<<<<< HEAD
+```
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, fig.height=4, fig.width=10}
+# figure output -----------------------------------------------------------
+# p = ggarrange(p1, p2,
+#               labels = c("(a)", "(b)"),
+#               ncol = 2, nrow = 1)
+
+p = combineGraphs(seq(1,countFigNum-1),'p',layout)
+plot(p)
+
+```
+
+Fig. 3. Pupillary responses in Experiment 1. Pupillary responses in Experiment 1. The horizontal axis indicates the time (in second), while the vertical axis indicates the grand-averaged change in pupil dilation from baseline (the gray shaded area, from −200 ms to 0 ms, shows the time range of the baseline). (a) Each line color shows the result of averaged pupil diameter to the halo stimuli and colored glare. (b) The average pupil changes in 4 s of viewing (c) the peak pupil constriction for each Pattern and Color condition. The asterisks (*) indicate a statistical significance of p < 0.05. Error bars indicate the standard error of the mean.
+
+## Figure 4
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+=======
+
+# figure output -----------------------------------------------------------
+
+p = ggarrange(p1, p2,
+              labels = c("(a)", "(b)"),
+              ncol = 2, nrow = 1)
+plot(p)
+```
+
+# Figure 4a
+```{r, message=FALSE, warning=FALSE}
+>>>>>>> origin/master
+
+countFigNum = 1
+SIZE_FONT=20
+
+#### file loading 
+load("dataset_e2.rda")
+
+# exclude the participants rejected in pupillometry(exp1)
+data_e2 <- subset(data_e2, sub != 7 & sub != 13 & sub != 9)
+
+numOfSub = length(unique(data_e2$sub))
+numOfcondition = 14
+anova_data_e2 <- aggregate( data_afy ~ sub*Color*Pattern, data = data_e2, FUN = "mean")
+
+anovakun(anova_data_e2,"sAB",gg=T,long=T, peta=T)
+# output2wayANOVA(forDrawingSigANOVA)
+# sigPair = makeSigPair(forDrawingPost)
+
+####
+config = list(lim_x=c(0.5,8),
+              lim_y = c(-5,25),
+              stride = 10,
+              label_x = "",
+              label_y = "Adjusted luminance score [%]",
+              title="average",
+              gr = c("Black","Blue","Cyan","Green","Yellow","Red","Magenta",
+                     "#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF","#FFFFFF"),
+<<<<<<< HEAD
+              gr_outline = rep(c("Black","Blue","Cyan","Green","Yellow","Red","Magenta"),2)
+                     # rep(c("Black","Blue","Cyan","Green","Yellow","Red","Magenta"),times=rep(2,7))
+=======
+              gr_outline = rep(c("Black","Blue","Cyan","Green","Yellow","Red","Magenta"),times=rep(2,7))
+>>>>>>> origin/master
+)
+config$stride = round(seq(config$lim_y[1],config$lim_y[2],config$stride),1)
+
+jitterVal <- c(rep(-0.225,numOfSub*(numOfcondition/2)),rep(0.225,numOfSub*(numOfcondition/2)))
+
+data_e2_ave <- aggregate( data_afy ~ Color*Pattern, data = data_e2, FUN = "mean")
+std_data = aggregate(data_afy ~ Color*Pattern, data=data_e2, FUN = "sd") 
+std_data$data_afy <- std_data$data_afy / sqrt(numOfSub)
+
+SE_min <- data_e2_ave$data_afy - std_data$data_afy
+SE_max <- data_e2_ave$data_afy + std_data$data_afy
+
+p <- ggplot(data_e2_ave, aes(x = Color, y = data_afy, fill = interaction(Color,Pattern)))+
+  geom_bar(stat = "identity", position = "dodge", colour = config$gr_outline)+
+  scale_fill_manual(values = config$gr) +
+   geom_hline(yintercept=0, colour="black", linetype="solid", size = 0.5) +
+  geom_errorbar(aes(ymin = SE_min, ymax = SE_max),
+                width = 0.4,
+                size=0.2,
+                position=position_dodge(.9)) +
+  coord_cartesian(xlim = config$lim_x, ylim = config$lim_y)+
+  xlab(config$label_x) + ylab(config$label_y)+ 
+  scale_y_continuous(breaks = config$stride,expand = c(0, 0))
+
+
+p = setBarFigureStyle(p)
+# p <- drawSignificance(p,sigPair,37,1)
+
+p <- p + theme(
+  legend.position = 'none',
+  axis.ticks.x = element_blank(),
+  axis.text.x = element_text(angle = 30, hjust = 1),
+  axis.line.x = element_blank()
+)
+<<<<<<< HEAD
+eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
+countFigNum = countFigNum+1
+
+```
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+=======
+
+# # # figure output -----------------------------------------------------------
+plot(p)
+```
+
+# Figure 4b
+```{r, message=FALSE, warning=FALSE}
+>>>>>>> origin/master
+
+load("dataset_e2.rda")
+# exclude the participants rejected in pupillometry(exp1)
+data_e2 <- subset(data_e2, sub != 7 & sub != 8 & sub != 13)
+data_e2 <- data_e2[data_e2$Pattern == "Glare",]
+
+load("dataset_e1.rda")
+data_e1 = aggregate( data_y ~ sub*Color*Pattern, data = data_e1, FUN = "mean")
+# exclude the participants who had a noisy pupil data or didn"t participante in exp2"
+data_e1 <- subset(data_e1, sub != 7 & sub != 13 & sub < 18)
+
+data_e1 <- data_e1[data_e1$Pattern == "Glare",]
+data_e2$PLR <- data_e1$data_y
+
+subName = NULL
+for( i in seq( length(unique(data_e2$sub))) ){ 
+  subName = rbind(subName,paste("s", i, sep = ""))
+}
+data_e2$sub = rep(subName, numOfcondition/2)
+
+config = list(lim_x = c(-20, 40),
+              lim_y = c(-1, 0.7),
+              stride = c(-0.4,-0.0,0.4),
+              alpha_val = 0.7,
+              label_x = "Adjusted luminance score [%]",
+              label_y = "Pupil Changes [mm]",
+              grCol= c("Black","Blue","Cyan","Green","Magenta","Red","Yellow"))
+
+data_e2_ave = aggregate(data_e2, by=list(Color=data_e2$Color,Pattern=data_e2$Pattern), FUN = "mean")
+
+p_val = NULL
+indCoff_y = NULL
+for( i in 1:numOfcondition ){
+  tmpData = data_e2[data_e2$sub == subName[i],]
+  lm = lm(PLR ~ data_afy, data = tmpData)
+  newavg <- data.frame(data_afy = config$lim_x[1]:config$lim_x[2])
+  newavg$reaction <- predict(lm, re.form = NA, newavg)
+  indCoff_y = cbind(indCoff_y,newavg$reaction)
+  p_val =  cbind(round(summary(lm)$coefficients[2,"Pr(>|t|)"], digits = 4))
+}
+
+indCoff <- data.frame(
+  y = matrix(indCoff_y,ncol = 1),
+  x = newavg$data_afy,
+  sub = rep(subName,times=rep( dim(newavg)[1], numOfcondition))
+)
+
+lm = lmer(PLR ~ data_afy + (1+data_afy|sub), data = data_e2)
+print(paste("y = ", round(summary(lm)$coefficients[2,"Estimate"], digits = 4),
+            "x + ", round(summary(lm)$coefficients[1,"Estimate"], digits = 4),
+            ", t = ", round(summary(lm)$coefficients[2,"t value"], digits = 4),
+            ", p = ", round(summary(lm)$coefficients[2,"Pr(>|t|)"], digits = 4),
+            ", R = ", round(cor(data_e2$data_afy,data_e2$PLR), digits = 4), sep=""))
+
+
+# Data frame to evaluate average effects predictions on
+newavg <- data.frame(data_afy = (config$lim_x[1]-20):(config$lim_x[2]+20))
+newavg$reaction <- predict(lm, re.form = NA, newavg)
+
+p <- ggplot() +
+  geom_line(data = newavg,aes(x = data_afy, y=reaction), col = "black", size = 1) +
+  geom_point(data = data_e2, alpha = config$alpha_val,
+             aes(x = data_afy, y = PLR, colour = Color, fill = Color), size = 2) +
+  scale_color_manual(values = config$gr) +
+  xlim(config$lim_x) +
+  xlab(config$label_x) + 
+  ylab(config$label_y)
+
+p <- setFigureStyle(p)
+p <- p + theme(
+  # legend.position = 'none',
+  axis.line.x = element_blank(),
+  axis.line.y = element_blank()
+)
+<<<<<<< HEAD
+eval(parse(text=paste("p", countFigNum ,"=p", sep="")))
+countFigNum = countFigNum+1
+
+```
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, fig.height=4, fig.width=10}
+
+## figure output -----------------------------------------------------------
+p = combineGraphs(seq(1,countFigNum-1),'p',layout)
+print(p)
+
+```
+
+Fig. 4. Results of adjusting luminance for each colored glare illusion. (a) The vertical axis shows the adjusted luminosity compared to the achromatic halo condition. The colored circle indicates the averaged data among the participants in each colored glare and halo condition. (b) Scatterplot between the averaged pupil diameter in the glare condition and adjusted relative luminance ratio (each dot indicates the participants' means of the relative luminance ratio and pupil diameter). Each colored circle indicates the results of each color type of glare illusion. The interpolating black line shows the simple regression line of LMM as fixed effect.
+=======
+
+## figure output -----------------------------------------------------------
+print(p)
+
+```
+>>>>>>> origin/master
