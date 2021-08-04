@@ -1,3 +1,6 @@
 . filter=lfs diff=lfs merge=lfs -text
 epochedEEGdata.mat filter=lfs diff=lfs merge=lfs -text
 P01/data/epochedEEGdata.mat filter=lfs diff=lfs merge=lfs -text
+*.asc linguist-vendored
+*.html linguist-vendored
+
