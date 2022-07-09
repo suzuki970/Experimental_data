@@ -1,6 +1,13 @@
 ## Experimental data for *"Association between pupil dilation and implicit processing prior to object recognition via insight"*
 Copyright 2018 Yuta Suzuki
 
+
+### Article information
+Suzuki Y, Minami T, Nakauchi S. 2018. Association between pupil dilation and implicit processing prior to object recognition via insight. Scientific Reports. 8(1):1–10. [doi.org/10.1038/s41598-018-25207-z].
+
+[doi.org/10.1038/s41598-018-25207-z]:https://doi.org/10.1038/s41598-018-25207-z
+
+
 ## Requirements
 R
 - library(rjson)
